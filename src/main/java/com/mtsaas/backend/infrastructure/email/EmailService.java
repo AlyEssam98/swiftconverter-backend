@@ -17,9 +17,13 @@ import jakarta.annotation.PostConstruct;
 public class EmailService {
 
     private final JavaMailSender javaMailSender;
-    private final String senderEmail;
-    private final String supportEmail;
     private final FallbackEmailService fallbackEmailService;
+
+    @Value("${spring.mail.username:converterswift@gmail.com}")
+    private String senderEmail;
+
+    @Value("${app.support.email:converterswift@gmail.com}")
+    private String supportEmail;
 
     @Value("${spring.mail.host:smtp.gmail.com}")
     private String mailHost;
