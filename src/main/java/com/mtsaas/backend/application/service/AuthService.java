@@ -63,9 +63,9 @@ public class AuthService {
                         user = userRepository.save(user);
                         log.info("✓ User created successfully: {} (ID: {})", user.getEmail(), user.getId());
                         
-                        // Send verification email
-                        emailVerificationService.sendVerificationEmail(email, verificationToken);
-                        log.info("✓ Verification email sent to: {}", email);
+                        // Email verification disabled
+                        // emailVerificationService.sendVerificationEmail(email, verificationToken);
+                        // log.info("✓ Verification email sent to: {}", email);
                         
                 } catch (DataIntegrityViolationException e) {
                         // This should not happen with pessimistic locking, but handle it as backup
