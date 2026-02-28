@@ -46,6 +46,10 @@ public class User {
     @Column(nullable = false)
     private boolean emailVerified;
 
+    private String emailVerificationToken;
+    
+    private LocalDateTime emailVerificationTokenExpiry;
+
     private String stripeCustomerId;
 
     private String displayName;
