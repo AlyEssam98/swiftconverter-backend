@@ -26,12 +26,11 @@ public class EmailVerificationService {
         );
 
         try {
-            // This would need to be implemented in EmailService
             log.info("Sending verification email to {} with token {}", userEmail, verificationToken);
             log.info("Verification URL: {}", verificationUrl);
             
-            // TODO: Implement actual email sending in EmailService
-            // emailService.sendVerificationEmail(userEmail, verificationUrl);
+            // Send actual verification email
+            emailService.sendVerificationEmail(userEmail, verificationUrl);
             
         } catch (Exception e) {
             log.error("Failed to send verification email to {}: {}", userEmail, e.getMessage());

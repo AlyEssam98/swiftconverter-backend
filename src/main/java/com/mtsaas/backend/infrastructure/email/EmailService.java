@@ -268,6 +268,89 @@ public class EmailService {
     }
 
     /**
+     * Send email verification email
+     */
+    public void sendVerificationEmail(String userEmail, String verificationUrl) {
+        try {
+            MimeMessage mimeMessage = javaMailSender.createMimeMessage();
+            MimeMessageHelper helper = new MimeMessageHelper(mimeMessage, true, "UTF-8");
+
+            helper.setFrom(senderEmail, "SWIFT Converter Pro");
+            helper.setTo(userEmail);
+            helper.setSubject("Verify your SWIFT Converter Pro account");
+
+            // Hide sender from reply-to
+            helper.setReplyTo(supportEmail);
+
+            String htmlContent = String.format(
+                "<!DOCTYPE html>" +
+                "<html>" +
+                "<head>" +
+                "    <meta charset='UTF-8'>" +
+                "    <meta name='viewport' content='width=device-width, initial-scale=1.0'>" +
+                "    <title>Verify Your SWIFT Converter Pro Account</title>" +
+                "    <style>" +
+                "        body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; line-height: 1.6; color: #333; }" +
+                "        .container { max-width: 600px; margin: 0 auto; padding: 20px; }" +
+                "        .header { background: linear-gradient(135deg, #667eea 0%%, #764ba2 100%%); padding: 30px; text-align: center; border-radius: 8px; }" +
+                "        .header h1 { color: white; margin: 0; font-size: 28px; }" +
+                "        .content { background: #f9f9f9; padding: 30px; border-radius: 8px; margin: 20px 0; }" +
+                "        .button { display: inline-block; background: #4CAF50; color: white; padding: 12px 30px; text-decoration: none; border-radius: 5px; margin: 20px 0; }" +
+                "        .footer { text-align: center; color: #666; font-size: 14px; margin-top: 30px; }" +
+                "    </style>" +
+                "</head>" +
+                "<body>" +
+                "    <div class='container'>" +
+                "        <div class='header'>" +
+                "            <h1>SWIFT Converter Pro</h1>" +
+                "        </div>" +
+                "        <div class='content'>" +
+                "            <h2>Welcome to SWIFT Converter Pro!</h2>" +
+                "            <p>Thank you for signing up. To complete your registration and start using our MT to MX conversion tools, please verify your email address.</p>" +
+                "            <p><strong>Why verify?</strong></p>" +
+                "            <ul>" +
+                "                <li>✅ Get 5 free credits to start</li>" +
+                "                <li>✅ Access MT103, MT202, MT940 conversion</li>" +
+                "                <li>✅ Generate ISO 20022 compliant output</li>" +
+                "            </ul>" +
+                "            <p style='text-align: center;'>" +
+                "                <a href='%s' class='button'>Verify Your Email</a>" +
+                "            </p>" +
+                "            <p style='font-size: 14px; color: #666;'>" +
+                "                Or copy and paste this link into your browser:<br>" +
+                "                <span style='word-break: break-all;'>%s</span>" +
+                "            </p>" +
+                "            <p style='font-size: 12px; color: #999;'>" +
+                "                This link will expire in 24 hours. If you didn't create an account, please ignore this email." +
+                "            </p>" +
+                "        </div>" +
+                "        <div class='footer'>" +
+                "            <p>Best regards,<br>The SWIFT Converter Pro Team</p>" +
+                "            <p style='font-size: 11px; color: #999;'>" +
+                "                This is an automated message. Please do not reply to this email." +
+                "            </p>" +
+                "        </div>" +
+                "    </div>" +
+                "</body>" +
+                "</html>",
+                verificationUrl, verificationUrl
+            );
+
+            helper.setText(htmlContent, true);
+            javaMailSender.send(mimeMessage);
+
+            log.info("✓ Verification email sent to {}", userEmail);
+        } catch (MailAuthenticationException e) {
+            log.error("❌ Email authentication failed - Check MAIL_PASSWORD in .env. Details: {}", e.getMessage());
+            logEmailConfiguration();
+        } catch (MessagingException e) {
+            log.error("❌ Failed to send verification email: {} - {}", e.getClass().getSimpleName(), e.getMessage());
+        } catch (Exception e) {
+            log.error("❌ Unexpected error sending verification email", e);
+        }
+    }
+
+    /**
      * Log email configuration for debugging
      */
     private void logEmailConfiguration() {
