@@ -324,14 +324,23 @@ public class CreditService {
                 }
 
                 LocalDateTime now = LocalDateTime.now();
-                List<CreditPurchase> validPurchases = creditPurchaseRepository.findValidPurchases(user, now);
-                
-                // Sort by expiry date (oldest first - use those first)
-                validPurchases.sort((a, b) -> a.getExpiryDate().compareTo(b.getExpiryDate()));
-                
                 long remainingCreditsToDeduct = creditsUsed;
                 
-                // Deduct from purchases one by one (oldest expiring first)
+                // First, deduct from user's direct credits (signup bonus)
+                long userDirectCredits = user.getCredits();
+                if (userDirectCredits > 0 && remainingCreditsToDeduct > 0) {
+                        long deductFromUserCredits = Math.min(remainingCreditsToDeduct, userDirectCredits);
+                        user.setCredits(userDirectCredits - deductFromUserCredits);
+                        userRepository.save(user);
+                        remainingCreditsToDeduct -= deductFromUserCredits;
+                        log.info("Deducted {} credits from user direct credits (remaining: {})", 
+                                deductFromUserCredits, user.getCredits());
+                }
+                
+                // Then, deduct from purchases one by one (oldest expiring first)
+                List<CreditPurchase> validPurchases = creditPurchaseRepository.findValidPurchases(user, now);
+                validPurchases.sort((a, b) -> a.getExpiryDate().compareTo(b.getExpiryDate()));
+                
                 for (CreditPurchase purchase : validPurchases) {
                         if (remainingCreditsToDeduct <= 0) {
                                 break;
