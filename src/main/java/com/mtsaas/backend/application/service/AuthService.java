@@ -51,13 +51,8 @@ public class AuthService {
                 user.setPasswordHash(passwordEncoder.encode(request.getPassword()));
                 user.setRole(Role.USER);
                 user.setCredits(0);  // Will track credits via CreditPurchase records
-                user.setEmailVerified(false);
+                user.setEmailVerified(true); // Auto-verify since we're not sending emails
                 user.setProvider("LOCAL");
-                
-                // Generate verification token
-                String verificationToken = UUID.randomUUID().toString();
-                user.setEmailVerificationToken(verificationToken);
-                user.setEmailVerificationTokenExpiry(LocalDateTime.now().plusHours(24)); // Token expires in 24 hours
 
                 try {
                         user = userRepository.save(user);
@@ -75,11 +70,11 @@ public class AuthService {
                                 .orElseThrow(() -> new RuntimeException("User creation failed: " + e.getMessage()));
                 }
 
-                // Don't give free credits until email is verified
-                log.info("✓ User registration pending email verification: {}", email);
+                log.info("✓ User registration completed: {}", email);
                 
-                // Return message instead of token - user must verify email first
-                return new AuthDto.AuthenticationResponse(null, "Check your email for a verification link. The link will expire in 24 hours.");
+                // Generate JWT token for immediate login
+                var jwtToken = jwtService.generateToken(new SecurityUser(user));
+                return new AuthDto.AuthenticationResponse(jwtToken, "Registration successful! You can now use the application.");
         }
 
         public AuthDto.AuthenticationResponse authenticate(AuthDto.AuthenticationRequest request) {
