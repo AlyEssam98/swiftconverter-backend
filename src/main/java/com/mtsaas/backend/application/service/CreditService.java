@@ -57,11 +57,19 @@ public class CreditService {
                 }
 
                 // Get available credits from valid (non-expired) purchases
-                Long availableCredits = creditPurchaseRepository.getAvailableCredits(user, now);
-                if (availableCredits == null) {
-                        availableCredits = 0L;
+                Long purchaseCredits = creditPurchaseRepository.getAvailableCredits(user, now);
+                if (purchaseCredits == null) {
+                        purchaseCredits = 0L;
                 }
-                log.info("✓ Total available credits: {}", availableCredits);
+                
+                // Add user's direct credits (from signup bonus)
+                Long userDirectCredits = user.getCredits();
+                
+                // Total available credits = purchase credits + direct user credits
+                Long availableCredits = purchaseCredits + userDirectCredits;
+                
+                log.info("✓ Purchase credits: {}, User direct credits: {}, Total available: {}", 
+                        purchaseCredits, userDirectCredits, availableCredits);
 
                 Long totalUsed = creditUsageRepository.getTotalCreditsUsedByUser(user);
                 

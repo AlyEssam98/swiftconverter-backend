@@ -68,7 +68,7 @@ public class OAuth2SuccessHandler extends SimpleUrlAuthenticationSuccessHandler 
                 user.setProvider(provider != null ? provider.toUpperCase() : "GOOGLE");
                 user.setRole(Role.USER);
                 user.setPasswordHash(""); // No password for OAuth2 users
-                user.setCredits(0); // Will track credits via CreditPurchase records
+                user.setCredits(5); // Give 5 free credits on signup
                 user.setEmailVerified(true); // OAuth2 emails are verified
                 
                 try {
@@ -81,14 +81,6 @@ public class OAuth2SuccessHandler extends SimpleUrlAuthenticationSuccessHandler 
                             .orElseThrow(() -> new RuntimeException("OAuth2 user creation failed: " + e.getMessage()));
                 }
 
-                // Give 5 free credits as a CreditPurchase record (30-day expiry)
-                try {
-                    creditService.addPurchasedCredits(user, 5L, "SIGNUP_FREE_CREDITS");
-                    log.info("✓ Assigned 5 free sign-up credits to OAuth2 user: {}", user.getEmail());
-                } catch (Exception e) {
-                    log.error("⚠ Failed to assign free credits during OAuth2 signup for {}: {}", user.getEmail(), e.getMessage());
-                    // Don't fail the authentication if credit assignment fails
-                }
             }
 
             // Generate JWT token and redirect

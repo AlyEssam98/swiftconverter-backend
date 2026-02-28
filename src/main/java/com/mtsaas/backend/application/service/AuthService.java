@@ -50,7 +50,7 @@ public class AuthService {
                 user.setEmail(email);
                 user.setPasswordHash(passwordEncoder.encode(request.getPassword()));
                 user.setRole(Role.USER);
-                user.setCredits(0);  // Will track credits via CreditPurchase records
+                user.setCredits(5);  // Give 5 free credits on signup
                 user.setEmailVerified(true); // Auto-verify since we're not sending emails
                 user.setProvider("LOCAL");
 
