@@ -275,7 +275,7 @@ public class EmailService {
             MimeMessage mimeMessage = javaMailSender.createMimeMessage();
             MimeMessageHelper helper = new MimeMessageHelper(mimeMessage, true, "UTF-8");
 
-            helper.setFrom(senderEmail, "SWIFT Converter Pro");
+            helper.setFrom(senderEmail);
             helper.setTo(userEmail);
             helper.setSubject("Verify your SWIFT Converter Pro account");
 

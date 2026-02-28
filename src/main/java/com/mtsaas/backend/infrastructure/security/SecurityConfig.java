@@ -50,6 +50,7 @@ public class SecurityConfig {
                         .requestMatchers("/api/v1/contact-us").permitAll() // Allow unauthenticated contact us submissions
                         .requestMatchers("/login/oauth2/code/**").permitAll()
                         .requestMatchers("/success").permitAll()
+                        .requestMatchers("/callback-page").permitAll()
                         .requestMatchers("/error").permitAll()
                         .requestMatchers(request -> "OPTIONS".equals(request.getMethod())).permitAll()
                         .anyRequest().authenticated())
