@@ -63,23 +63,23 @@ public class ContactUsService {
             ContactUs contactUs = contactUsRepository.save(builder.build());
             log.info("Contact Us saved to database with ID: {}", contactUs.getId());
 
-            // Send email notification to admin only if we have a valid user email
-            if (userEmail != null && !userEmail.equals("anonymous@contact")) {
-                try {
-                    emailService.sendContactUsNotification(
-                            userName,
-                            userEmail,
-                            subject,
-                            request.getMessage()
-                    );
-                    log.info("✓ Contact Us email notification sent from: {}", userEmail);
-                } catch (Exception e) {
-                    log.warn("Failed to send contact us email notification from {}: {}", userEmail, e.getMessage());
-                    // Don't fail the request if email fails - response still succeeds
-                }
-            } else {
-                log.info("Contact Us message from anonymous user stored in database (no email to contact back)");
-            }
+            // Email sending disabled
+            // if (userEmail != null && !userEmail.equals("anonymous@contact")) {
+            //     try {
+            //         emailService.sendContactUsNotification(
+            //                 userName,
+            //                 userEmail,
+            //                 subject,
+            //                 request.getMessage()
+            //         );
+            //         log.info("✓ Contact Us email notification sent from: {}", userEmail);
+            //     } catch (Exception e) {
+            //         log.warn("Failed to send contact us email notification from {}: {}", userEmail, e.getMessage());
+            //         // Don't fail the request if email fails - response still succeeds
+            //     }
+            // } else {
+            //     log.info("Contact Us message from anonymous user stored in database (no email to contact back)");
+            // }
 
             return mapToResponse(contactUs);
         } catch (Exception e) {

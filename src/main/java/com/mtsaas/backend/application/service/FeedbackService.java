@@ -46,16 +46,16 @@ public class FeedbackService {
 
         Feedback feedback = feedbackRepository.save(builder.build());
 
-        // Send email notification to admin
-        if (email != null) {
-            try {
-                emailService.sendFeedbackNotification(email, request.getMessage());
-                log.info("Feedback email notification sent for user: {}", email);
-            } catch (Exception e) {
-                // Log but don't fail the request if email fails
-                log.error("Failed to send feedback email notification for user {}: {}", email, e.getMessage(), e);
-            }
-        }
+        // Email sending disabled
+        // if (email != null) {
+        //     try {
+        //         emailService.sendFeedbackNotification(email, request.getMessage());
+        //         log.info("Feedback email notification sent for user: {}", email);
+        //     } catch (Exception e) {
+        //         // Log but don't fail the request if email fails
+        //         log.error("Failed to send feedback email notification for user {}: {}", email, e.getMessage(), e);
+        //     }
+        // }
 
         return mapToResponse(feedback);
     }

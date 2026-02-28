@@ -208,28 +208,28 @@ public class CreditService {
                 log.info("Fulfilled purchase: {} credits for user: {}. Transaction: {}",
                                 amount, user.getEmail(), transactionId);
 
-                // Send admin notification email
-                try {
-                        String packageName = determinePackageName(amount);
-                        BigDecimal packagePrice = determinePackagePrice(amount);
-                        
-                        log.info("Sending admin notification for purchase: Package={}, Amount=${}", packageName, packagePrice);
-                        
-                        // Send admin notification
-                        emailService.sendAdminPurchaseNotification(
-                                user.getEmail(),
-                                amount,
-                                packageName,
-                                packagePrice
-                        );
-                        log.info("✓ Sent admin purchase notification");
-                        
-                        log.info("✓ Purchase notification email sent for transaction: {}", transactionId);
-                } catch (Exception e) {
-                        log.error("⚠ Failed to send purchase notification email for transaction {}: {}",
-                                transactionId, e.getMessage(), e);
-                        // Don't throw exception - email is not critical to credit fulfillment
-                }
+                // Email sending disabled
+                // try {
+                //         String packageName = determinePackageName(amount);
+                //         BigDecimal packagePrice = determinePackagePrice(amount);
+                //         
+                //         log.info("Sending admin notification for purchase: Package={}, Amount=${}", packageName, packagePrice);
+                //         
+                //         // Send admin notification
+                //         emailService.sendAdminPurchaseNotification(
+                //                 user.getEmail(),
+                //                 amount,
+                //                 packageName,
+                //                 packagePrice
+                //         );
+                //         log.info("✓ Sent admin purchase notification");
+                //         
+                //         log.info("✓ Purchase notification email sent for transaction: {}", transactionId);
+                // } catch (Exception e) {
+                //         log.error("⚠ Failed to send purchase notification email for transaction {}: {}",
+                //                 transactionId, e.getMessage(), e);
+                //         // Don't throw exception - email is not critical to credit fulfillment
+                // }
         }
 
         private String determinePackageName(long credits) {
