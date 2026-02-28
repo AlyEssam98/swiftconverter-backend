@@ -17,18 +17,15 @@ import jakarta.annotation.PostConstruct;
 public class EmailService {
 
     private final JavaMailSender javaMailSender;
-
-    @Value("${spring.mail.username:converterswift@gmail.com}")
-    private String senderEmail;
+    private final String senderEmail;
+    private final String supportEmail;
+    private final FallbackEmailService fallbackEmailService;
 
     @Value("${spring.mail.host:smtp.gmail.com}")
     private String mailHost;
 
     @Value("${spring.mail.port:587}")
     private int mailPort;
-
-    @Value("${app.support.email:converterswift@gmail.com}")
-    private String supportEmail;
 
     @PostConstruct
     public void init() {
@@ -88,10 +85,13 @@ public class EmailService {
             log.error("   - Ensure 2-factor authentication is enabled on Gmail account");
             log.error("   - Details: {}", e.getMessage());
             logEmailConfiguration();
+            fallbackEmailService.logFeedbackEmail(userEmail, message);
         } catch (MessagingException e) {
             log.error("❌ Failed to send feedback email: {} - {}", e.getClass().getSimpleName(), e.getMessage());
+            fallbackEmailService.logFeedbackEmail(userEmail, message);
         } catch (Exception e) {
             log.error("❌ Unexpected error sending feedback email", e);
+            fallbackEmailService.logFeedbackEmail(userEmail, message);
         }
     }
 
@@ -140,10 +140,13 @@ public class EmailService {
             log.error("   - Ensure 2-factor authentication is enabled on Gmail account");
             log.error("   - Details: {}", e.getMessage());
             logEmailConfiguration();
+            fallbackEmailService.logContactUsEmail(userName, userEmail, subject, message);
         } catch (MessagingException e) {
             log.error("❌ Failed to send contact us email: {} - {}", e.getClass().getSimpleName(), e.getMessage());
+            fallbackEmailService.logContactUsEmail(userName, userEmail, subject, message);
         } catch (Exception e) {
             log.error("❌ Unexpected error sending contact us email", e);
+            fallbackEmailService.logContactUsEmail(userName, userEmail, subject, message);
         }
     }
 
@@ -343,10 +346,13 @@ public class EmailService {
         } catch (MailAuthenticationException e) {
             log.error("❌ Email authentication failed - Check MAIL_PASSWORD in .env. Details: {}", e.getMessage());
             logEmailConfiguration();
+            fallbackEmailService.logVerificationEmail(userEmail, verificationUrl);
         } catch (MessagingException e) {
             log.error("❌ Failed to send verification email: {} - {}", e.getClass().getSimpleName(), e.getMessage());
+            fallbackEmailService.logVerificationEmail(userEmail, verificationUrl);
         } catch (Exception e) {
             log.error("❌ Unexpected error sending verification email", e);
+            fallbackEmailService.logVerificationEmail(userEmail, verificationUrl);
         }
     }
 
