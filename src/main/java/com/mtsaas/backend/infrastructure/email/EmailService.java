@@ -18,7 +18,7 @@ public class EmailService {
 
     private final JavaMailSender javaMailSender;
 
-    @Value("${spring.mail.username:swiftconverter@gmail.com}")
+    @Value("${spring.mail.username:converterswift@gmail.com}")
     private String senderEmail;
 
     @Value("${spring.mail.host:smtp.gmail.com}")
@@ -27,7 +27,7 @@ public class EmailService {
     @Value("${spring.mail.port:587}")
     private int mailPort;
 
-    @Value("${app.support.email:swiftconverter@gmail.com}")
+    @Value("${app.support.email:converterswift@gmail.com}")
     private String supportEmail;
 
     @PostConstruct
