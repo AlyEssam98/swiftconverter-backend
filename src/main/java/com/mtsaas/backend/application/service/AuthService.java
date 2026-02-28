@@ -9,7 +9,9 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.dao.DataIntegrityViolationException;
 
+import java.time.LocalDateTime;
 import java.util.Optional;
+import java.util.UUID;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -26,6 +28,7 @@ public class AuthService {
         private final JwtService jwtService;
         private final AuthenticationManager authenticationManager;
         private final CreditService creditService;
+        private final EmailVerificationService emailVerificationService;
 
         @Transactional(isolation = org.springframework.transaction.annotation.Isolation.SERIALIZABLE)
         public AuthDto.AuthenticationResponse register(AuthDto.RegisterRequest request) {
@@ -50,10 +53,20 @@ public class AuthService {
                 user.setCredits(0);  // Will track credits via CreditPurchase records
                 user.setEmailVerified(false);
                 user.setProvider("LOCAL");
+                
+                // Generate verification token
+                String verificationToken = UUID.randomUUID().toString();
+                user.setEmailVerificationToken(verificationToken);
+                user.setEmailVerificationTokenExpiry(LocalDateTime.now().plusHours(24)); // Token expires in 24 hours
 
                 try {
                         user = userRepository.save(user);
                         log.info("✓ User created successfully: {} (ID: {})", user.getEmail(), user.getId());
+                        
+                        // Send verification email
+                        emailVerificationService.sendVerificationEmail(email, verificationToken);
+                        log.info("✓ Verification email sent to: {}", email);
+                        
                 } catch (DataIntegrityViolationException e) {
                         // This should not happen with pessimistic locking, but handle it as backup
                         log.error("⚠ DataIntegrityViolationException during user creation for {}: {}", email, e.getMessage());
@@ -62,17 +75,11 @@ public class AuthService {
                                 .orElseThrow(() -> new RuntimeException("User creation failed: " + e.getMessage()));
                 }
 
-                // Give 5 free credits as a CreditPurchase record (30-day expiry)
-                try {
-                        creditService.addPurchasedCredits(user, 5L, "SIGNUP_FREE_CREDITS");
-                        log.info("✓ Assigned 5 free sign-up credits to user: {}", user.getEmail());
-                } catch (Exception e) {
-                        log.error("⚠ Failed to assign free credits during signup for {}: {}", user.getEmail(), e.getMessage());
-                        // Don't fail the registration if credit assignment fails
-                }
-
-                var jwtToken = jwtService.generateToken(new SecurityUser(user));
-                return new AuthDto.AuthenticationResponse(jwtToken, "");
+                // Don't give free credits until email is verified
+                log.info("✓ User registration pending email verification: {}", email);
+                
+                // Return message instead of token - user must verify email first
+                return new AuthDto.AuthenticationResponse(null, "Check your email for a verification link. The link will expire in 24 hours.");
         }
 
         public AuthDto.AuthenticationResponse authenticate(AuthDto.AuthenticationRequest request) {

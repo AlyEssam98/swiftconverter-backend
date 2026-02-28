@@ -96,8 +96,26 @@ public class OAuth2Controller {
     @GetMapping("/success")
     public String oauth2Success() {
         return "<html><body><script>" +
-               "window.opener.postMessage({type: 'OAUTH_SUCCESS', token: window.location.hash.substring(1)}, '*');" +
-               "window.close();" +
+               "if (window.opener && window.opener !== window) {" +
+               "  window.opener.postMessage({type: 'OAUTH_SUCCESS', token: window.location.hash.substring(1)}, '*');" +
+               "  window.close();" +
+               "} else {" +
+               "  // Fallback for non-popup flow" +
+               "  window.location.href = '/auth/callback';" +
+               "}" +
+               "</script></body></html>";
+    }
+    
+    @GetMapping("/error")
+    public String oauth2Error() {
+        return "<html><body><script>" +
+               "if (window.opener && window.opener !== window) {" +
+               "  window.opener.postMessage({type: 'OAUTH_ERROR', error: 'OAuth authentication failed'}, '*');" +
+               "  window.close();" +
+               "} else {" +
+               "  // Fallback for non-popup flow" +
+               "  window.location.href = '/auth/login?error=oauth_failed';" +
+               "}" +
                "</script></body></html>";
     }
 }
