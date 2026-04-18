@@ -1,6 +1,8 @@
 # Build artifacts
-backend/target/
-backend/build/
+target/
+build/
+.mvn/wrapper/*.jar
+! .mvn/wrapper/maven-wrapper.jar
 frontend/.next/
 frontend/out/
 frontend/dist/
