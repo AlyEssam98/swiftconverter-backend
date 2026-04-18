@@ -23,8 +23,6 @@ public class MxParser {
 
     private static final Logger log = LoggerFactory.getLogger(MxParser.class);
 
-    // Pattern to extract message type from namespace or MsgDefIdr
-    private static final Pattern MSG_DEF_PATTERN = Pattern.compile("(pacs|camt|head)\\.(\\d{3})\\.\\d{3}\\.\\d{2}");
 
     public MxMessage parse(String xmlContent) {
         MxMessage mxMessage = new MxMessage();

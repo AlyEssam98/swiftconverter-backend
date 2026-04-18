@@ -5,7 +5,6 @@ import org.springframework.stereotype.Service;
 
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.Date;
 
 /**
  * In-memory token blacklist service for logout functionality.

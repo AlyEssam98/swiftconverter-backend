@@ -5,7 +5,6 @@ import com.mtsaas.backend.domain.ContactUs;
 import com.mtsaas.backend.domain.User;
 import com.mtsaas.backend.infrastructure.repository.ContactUsRepository;
 import com.mtsaas.backend.infrastructure.repository.UserRepository;
-import com.mtsaas.backend.infrastructure.email.EmailService;
 import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -22,7 +21,6 @@ public class ContactUsService {
 
     private final ContactUsRepository contactUsRepository;
     private final UserRepository userRepository;
-    private final EmailService emailService;
 
     @Transactional
     public ContactUsDto.ContactUsResponse submitContactUs(String email, ContactUsDto.ContactUsRequest request, HttpServletRequest httpRequest) {
@@ -122,7 +120,4 @@ public class ContactUsService {
         return xfHeader.split(",")[0].trim();
     }
 
-    private boolean isEmpty(String str) {
-        return str == null || str.trim().isEmpty();
-    }
 }

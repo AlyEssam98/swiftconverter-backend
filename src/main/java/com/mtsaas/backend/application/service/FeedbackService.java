@@ -5,7 +5,6 @@ import com.mtsaas.backend.domain.Feedback;
 import com.mtsaas.backend.domain.User;
 import com.mtsaas.backend.infrastructure.repository.FeedbackRepository;
 import com.mtsaas.backend.infrastructure.repository.UserRepository;
-import com.mtsaas.backend.infrastructure.email.EmailService;
 import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -22,7 +21,6 @@ public class FeedbackService {
 
     private final FeedbackRepository feedbackRepository;
     private final UserRepository userRepository;
-    private final EmailService emailService;
 
     @Transactional
     public FeedbackDto.FeedbackResponse submitFeedback(String email, FeedbackDto.FeedbackRequest request, HttpServletRequest httpRequest) {

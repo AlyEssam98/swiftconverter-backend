@@ -13,9 +13,6 @@ import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.web.bind.annotation.*;
 
-import java.time.LocalDateTime;
-import java.time.format.DateTimeFormatter;
-import java.time.temporal.ChronoUnit;
 
 @RestController
 @RequestMapping("/api/v1/profile")

@@ -1,6 +1,5 @@
 package com.mtsaas.backend.infrastructure.security;
 
-import com.mtsaas.backend.application.service.CreditService;
 import com.mtsaas.backend.application.service.SecurityUser;
 import com.mtsaas.backend.domain.Role;
 import com.mtsaas.backend.domain.User;
@@ -28,7 +27,6 @@ public class OAuth2SuccessHandler extends SimpleUrlAuthenticationSuccessHandler 
 
     private final UserRepository userRepository;
     private final JwtService jwtService;
-    private final CreditService creditService;
 
     @Value("${app.frontend.url:http://localhost:3000}")
     private String frontendUrl;

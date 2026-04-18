@@ -7,7 +7,6 @@ import com.mtsaas.backend.domain.Conversion;
 import com.mtsaas.backend.infrastructure.repository.UserRepository;
 import com.mtsaas.backend.infrastructure.repository.CreditUsageRepository;
 import com.mtsaas.backend.infrastructure.repository.CreditPurchaseRepository;
-import com.mtsaas.backend.infrastructure.email.EmailService;
 import com.mtsaas.backend.dto.CreditBalanceResponse;
 import com.mtsaas.backend.dto.CreditPackageResponse;
 import com.mtsaas.backend.dto.PurchaseCreditsResponse;
@@ -36,7 +35,6 @@ public class CreditService {
         private final CreditUsageRepository creditUsageRepository;
         private final CreditPurchaseRepository creditPurchaseRepository;
         private final StripeService stripeService;
-        private final EmailService emailService;
 
 
         public CreditBalanceResponse getUserCreditBalance(String email) {
@@ -240,23 +238,6 @@ public class CreditService {
                 // }
         }
 
-        private String determinePackageName(long credits) {
-                return switch ((int) credits) {
-                        case 50 -> "Starter Pack - 50 credits/month";
-                        case 200 -> "Professional Pack - 200 credits/month";
-                        case 500 -> "Enterprise Pack - 500 credits/month";
-                        default -> "Custom Package (" + credits + " credits)";
-                };
-        }
-
-        private BigDecimal determinePackagePrice(long credits) {
-                return switch ((int) credits) {
-                        case 50 -> new BigDecimal("9.99");
-                        case 200 -> new BigDecimal("29.99");
-                        case 500 -> new BigDecimal("69.99");
-                        default -> BigDecimal.ZERO;
-                };
-        }
 
         public CreditUsageResponse getCreditUsage(String email) {
                 // Handle mock user for development

@@ -1,12 +1,10 @@
 package com.mtsaas.backend.api;
 
-import com.mtsaas.backend.application.service.AuthService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
-import java.time.LocalDateTime;
 import java.util.Map;
 
 @RestController
@@ -15,7 +13,6 @@ import java.util.Map;
 @Slf4j
 public class EmailVerificationController {
 
-    private final AuthService authService;
 
     @GetMapping("/verify")
     public ResponseEntity<?> verifyEmail(@RequestParam String token, @RequestParam String email) {

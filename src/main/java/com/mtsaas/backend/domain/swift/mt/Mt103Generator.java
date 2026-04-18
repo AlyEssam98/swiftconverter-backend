@@ -29,7 +29,6 @@ public class Mt103Generator extends BaseMtGenerator {
 
     @Override
     protected String generateMt(MxMessage mxMessage) {
-        Map<String, String> fields = mxMessage.getFields();
         StringBuilder block4 = new StringBuilder();
 
         // :20: Transaction Reference Number

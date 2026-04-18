@@ -9,9 +9,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.dao.DataIntegrityViolationException;
 
-import java.time.LocalDateTime;
 import java.util.Optional;
-import java.util.UUID;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -27,8 +25,6 @@ public class AuthService {
         private final PasswordEncoder passwordEncoder;
         private final JwtService jwtService;
         private final AuthenticationManager authenticationManager;
-        private final CreditService creditService;
-        private final EmailVerificationService emailVerificationService;
 
         @Transactional(isolation = org.springframework.transaction.annotation.Isolation.SERIALIZABLE)
         public AuthDto.AuthenticationResponse register(AuthDto.RegisterRequest request) {
