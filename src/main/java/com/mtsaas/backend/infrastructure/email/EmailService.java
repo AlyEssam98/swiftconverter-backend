@@ -3,6 +3,7 @@ package com.mtsaas.backend.infrastructure.email;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.context.annotation.Lazy;
 import org.springframework.mail.MailAuthenticationException;
 import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.mail.javamail.MimeMessageHelper;
@@ -12,6 +13,7 @@ import jakarta.mail.internet.MimeMessage;
 import jakarta.annotation.PostConstruct;
 
 @Service
+@Lazy
 @RequiredArgsConstructor
 @Slf4j
 public class EmailService {

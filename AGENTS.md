@@ -43,6 +43,13 @@ This is a Spring Boot 3.2.3 application providing SWIFT MT-MX message conversion
 - **Profiles**: `dev` (default), `prod` (for deployment)
 - **Health Check**: GET `/api/v1/health` (used by Render cron)
 
+## Performance Optimizations
+- **Lazy Initialization**: `spring.main.lazy-initialization=true` for faster startup
+- **Connection Pool**: HikariCP `minimum-idle=0` to avoid eager connections
+- **JVM Options**: `-XX:TieredStopAtLevel=1 -noverify` for faster JVM startup
+- **Lazy Services**: `@Lazy` on heavy services (ConversionService, EmailService)
+- **JPA Batching**: Enabled for better DB performance
+
 ## Code Patterns & Conventions
 - **Entities**: Lombok `@Data @Builder` with explicit getters/setters for JPA compatibility
 - **Services**: `@RequiredArgsConstructor` for dependency injection
