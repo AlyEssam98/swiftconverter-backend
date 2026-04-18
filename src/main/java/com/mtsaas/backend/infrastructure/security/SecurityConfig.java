@@ -49,6 +49,7 @@ public class SecurityConfig {
                         .requestMatchers("/api/v1/feedback").permitAll()
                         .requestMatchers("/api/v1/contact-us").permitAll() // Allow unauthenticated contact us submissions
                         .requestMatchers("/api/v1/test/**").permitAll() // Email test endpoints
+                        .requestMatchers("/api/v1/health").permitAll() // Health check endpoint
                         .requestMatchers("/login/oauth2/code/**").permitAll()
                         .requestMatchers("/success").permitAll()
                         .requestMatchers("/callback-page").permitAll()
