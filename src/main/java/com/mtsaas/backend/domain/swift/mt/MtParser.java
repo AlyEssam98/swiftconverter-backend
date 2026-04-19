@@ -13,14 +13,14 @@ public class MtParser {
     // Extract Block 4 (main message) {4: ... -}
     private static final Pattern BLOCK_4_PATTERN = Pattern.compile("\\{4:([\\s\\S]*?)-\\}");
 
-    // Extract MT type from block 2: {2:O103...}, {2:O202...}
-    private static final Pattern MT_TYPE_PATTERN = Pattern.compile("\\{2:[OI](\\d{3})");
+    // Extract MT type from block 2: {2:O103...}, {2:I103...}, {2:1103...}
+    private static final Pattern MT_TYPE_PATTERN = Pattern.compile("\\{2:[OI]?(\\d{3})");
 
     // Extract Block 1 (Sender BIC): {1:F01BANKDEFFAXXX...}
     private static final Pattern BLOCK_1_PATTERN = Pattern.compile("\\{1:[A-Z]{1}\\d{2}([A-Z0-9]{12})");
 
-    // Extract Block 2 (Receiver BIC): {2:O1030000000000BANKBEBBAXXX...}
-    private static final Pattern BLOCK_2_RECV_PATTERN = Pattern.compile("\\{2:[OI]\\d{3}\\d{10}([A-Z0-9]{12})");
+    // Extract Block 2 (Receiver BIC): Handle standard 12-char and shorter forms
+    private static final Pattern BLOCK_2_RECV_PATTERN = Pattern.compile("\\{2:[OI]?\\d{3}\\d{0,10}([A-Z0-9]{8,12})");
 
     // Extract Block 3 (User Header) fields: {3:{121:uuid}...}
     // Updated regex to handle nested braces correctly
@@ -76,6 +76,8 @@ public class MtParser {
             String fullBic = receiverMatcher.group(1);
             if (fullBic.length() == 12) {
                 fullBic = fullBic.substring(0, 8) + fullBic.substring(9);
+            } else if (fullBic.length() == 9) {
+                fullBic = fullBic.substring(0, 8); // Handle 9-char forms if they occur
             }
             message.setReceiver(fullBic);
         }
@@ -126,6 +128,10 @@ public class MtParser {
         // Add the last tag
         if (lastTag != null) {
             String value = block4.substring(lastMatchEnd).trim();
+            // Handle cases where block 5 might be attached to the last tag value
+            if (value.contains("{5:")) {
+                value = value.substring(0, value.indexOf("{5:")).trim();
+            }
             tags.put(lastTag, value);
         }
 

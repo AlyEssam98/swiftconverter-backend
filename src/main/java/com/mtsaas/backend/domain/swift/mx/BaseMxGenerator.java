@@ -158,10 +158,13 @@ public abstract class BaseMxGenerator implements MxGenerator {
         // Clearing system used -> CLRG
         // RTGS -> RTGS
 
-        // If no clearing system identified (53, 54, 56 chain) -> INDA
-        if (hasAnyTag(tags, "53") || hasAnyTag(tags, "54") || hasAnyTag(tags, "56")) {
-            // Check for specific clearing codes if possible, default to CLRG if
-            // correspondent exists
+        // If tag 57 (Account with Institution) starts with //, it indicates a clearing system
+        String f57 = tags.get("57");
+        if (f57 == null) f57 = tags.get("57A");
+        if (f57 == null) f57 = tags.get("57D");
+        
+        if ((f57 != null && f57.trim().startsWith("//")) || 
+            hasAnyTag(tags, "53") || hasAnyTag(tags, "54") || hasAnyTag(tags, "56")) {
             return "CLRG";
         }
         return "INDA";
@@ -192,8 +195,26 @@ public abstract class BaseMxGenerator implements MxGenerator {
             // Priority: Regex-extracted BIC (for A, D, F variants)
             String bic = sanitizeBic(parsed.getBic());
             xml.append("            <BICFI>").append(escapeXml(bic)).append("</BICFI>\n");
-            xml.append("            <Nm>").append(escapeXml(bic)).append("</Nm>\n");
         } else {
+            String account = parsed.getAccount();
+            if (account != null && account.startsWith("FW")) {
+                // Fedwire Handling
+                xml.append("            <ClrSysMmbId>\n");
+                xml.append("              <ClrSysId>\n");
+                xml.append("                <Cd>FW</Cd>\n");
+                xml.append("              </ClrSysId>\n");
+                xml.append("              <MmbId>").append(escapeXml(account.substring(2))).append("</MmbId>\n");
+                xml.append("            </ClrSysMmbId>\n");
+            } else if (account != null && account.matches("^[A-Z]{2}\\d+")) {
+                // Generic Clearing System member handling
+                xml.append("            <ClrSysMmbId>\n");
+                xml.append("              <ClrSysId>\n");
+                xml.append("                <Cd>").append(escapeXml(account.substring(0, 2))).append("</Cd>\n");
+                xml.append("              </ClrSysId>\n");
+                xml.append("              <MmbId>").append(escapeXml(account.substring(2))).append("</MmbId>\n");
+                xml.append("            </ClrSysMmbId>\n");
+            }
+
             String name = parsed.getName();
             if (name == null || name.isBlank()) {
                 name = "UNKNOWN BANK";
@@ -385,13 +406,15 @@ public abstract class BaseMxGenerator implements MxGenerator {
         String firstLine = lines.get(0);
         if (firstLine.startsWith("/")) {
             // Check if there's a name on the same line: /ACCOUNT NAME
-            String remainder = firstLine.substring(1).trim();
+            // Strip all leading slashes for the account field
+            String remainder = firstLine.replaceAll("^/+", "").trim();
             int spaceIdx = remainder.indexOf(' ');
             if (spaceIdx > 0) {
                 account = remainder.substring(0, spaceIdx).trim();
                 name = remainder.substring(spaceIdx).trim();
             } else {
                 account = remainder;
+                account = remainder.trim();
             }
             startLine = 1;
         }
@@ -409,18 +432,40 @@ public abstract class BaseMxGenerator implements MxGenerator {
             addressLines.add(lines.get(i));
         }
 
-        // Check for country in the last line
+        // Check for country in the last line (more robustly with word boundaries)
         if (!addressLines.isEmpty()) {
-            String lastLine = addressLines.get(addressLines.size() - 1);
-            if (lastLine.length() >= 2) {
-                String candidate = lastLine.substring(lastLine.length() - 2);
-                if (candidate.matches("[A-Z]{2}")) {
+            String lastLine = addressLines.get(addressLines.size() - 1).trim();
+            // Match 2-letter code at end of line preceded by space or at start of line
+            java.util.regex.Matcher countryMatcher = java.util.regex.Pattern.compile("(?:^|\\s)([A-Z]{2})$")
+                    .matcher(lastLine);
+            if (countryMatcher.find()) {
+                String candidate = countryMatcher.group(1);
+                // Simple validation: should not be part of a common word suffix if possible
+                // but standard list is best. For now, let's just ensure it's not "AS" if "VEGAS"
+                if (!("AS".equals(candidate) && lastLine.endsWith("VEGAS"))) {
                     country = candidate;
-                    String remainder = lastLine.substring(0, lastLine.length() - 2).trim();
+                    String remainder = lastLine.substring(0, countryMatcher.start(1)).trim();
                     if (remainder.isEmpty()) {
                         addressLines.remove(addressLines.size() - 1);
                     } else {
                         addressLines.set(addressLines.size() - 1, remainder);
+                    }
+                }
+            }
+            
+            // Also check for country at the START of any address line (Common in MT103)
+            if (country == null) {
+                for (int i = 0; i < addressLines.size(); i++) {
+                    String adrLine = addressLines.get(i).trim();
+                    if (adrLine.matches("^[A-Z]{2}\\s+.*")) {
+                        country = adrLine.substring(0, 2);
+                        String remainder = adrLine.substring(2).trim();
+                        if (remainder.isEmpty()) {
+                            addressLines.remove(i);
+                        } else {
+                            addressLines.set(i, remainder);
+                        }
+                        break;
                     }
                 }
             }
