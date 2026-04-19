@@ -40,8 +40,10 @@ public class Pacs008Generator extends BaseMxGenerator {
         StringBuilder xml = new StringBuilder();
 
         String msgId = tags.getOrDefault("20", "UNKNOWN-" + System.currentTimeMillis());
-        String creationDate = java.time.format.DateTimeFormatter.ISO_OFFSET_DATE_TIME
-                .format(java.time.OffsetDateTime.now().truncatedTo(java.time.temporal.ChronoUnit.SECONDS));
+        String creationDate = LocalDateTime.now().toString(); // ISO format: 2023-10-05T10:00:00...
+
+        // Ensure creationDate is formatted correctly for XML (remove nanoseconds if too
+        // long, etc? Standard toString is usually OK)
 
         String bizMsgIdr = msgId;
 
@@ -65,6 +67,7 @@ public class Pacs008Generator extends BaseMxGenerator {
         xml.append("<RequestPayload>\n");
 
         xml.append("  <AppHdr xmlns=\"urn:iso:std:iso:20022:tech:xsd:head.001.001.01\">\n");
+        xml.append("    <CharSet>utf-8</CharSet>\n");
         xml.append("    <Fr>\n");
         xml.append("      <FIId>\n");
         xml.append("        <FinInstnId>\n");
@@ -207,8 +210,10 @@ public class Pacs008Generator extends BaseMxGenerator {
         xml.append("          </FinInstnId>\n");
         xml.append("        </InstgAgt>\n");
 
-        // Instructed Agent = Fallback (Should be omitted if CdtrAgt is present per CBPR+)
-        if (!hasAnyTag(tags, "57")) {
+        // Instructed Agent = Tag 57 or Message Receiver (Fallback)
+        if (hasAnyTag(tags, "57")) {
+            appendAgent(xml, "InstdAgt", null, tags, "57");
+        } else {
             xml.append("        <InstdAgt>\n");
             xml.append("          <FinInstnId>\n");
             xml.append("            <BICFI>").append(escapeXml(sanitizeBic(mtMessage.getReceiver())))
