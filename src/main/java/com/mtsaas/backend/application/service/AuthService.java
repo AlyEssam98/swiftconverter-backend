@@ -3,7 +3,7 @@ package com.mtsaas.backend.application.service;
 import com.mtsaas.backend.application.dto.AuthDto;
 import com.mtsaas.backend.domain.EmailVerificationToken;
 import com.mtsaas.backend.domain.Role;
-import com.mtsaas.backend.domain.SecurityUser;
+
 import com.mtsaas.backend.domain.User;
 import com.mtsaas.backend.infrastructure.email.EmailService;
 import com.mtsaas.backend.infrastructure.repository.EmailVerificationTokenRepository;
