@@ -88,4 +88,40 @@ public class AuthDto {
             this.refreshToken = refreshToken;
         }
     }
+
+    public static class VerifyEmailRequest {
+        private String token;
+
+        public VerifyEmailRequest() {}
+
+        public VerifyEmailRequest(String token) {
+            this.token = token;
+        }
+
+        public String getToken() {
+            return token;
+        }
+
+        public void setToken(String token) {
+            this.token = token;
+        }
+    }
+
+    public static class ResendVerificationRequest {
+        private String email;
+
+        public ResendVerificationRequest() {}
+
+        public ResendVerificationRequest(String email) {
+            this.email = email;
+        }
+
+        public String getEmail() {
+            return email;
+        }
+
+        public void setEmail(String email) {
+            this.email = email;
+        }
+    }
 }
