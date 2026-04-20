@@ -11,6 +11,7 @@ import org.springframework.stereotype.Service;
 import jakarta.mail.MessagingException;
 import jakarta.mail.internet.MimeMessage;
 import jakarta.annotation.PostConstruct;
+import org.springframework.scheduling.annotation.Async;
 
 @Service
 @Lazy
@@ -54,6 +55,7 @@ public class EmailService {
     /**
      * Send feedback email notification with error handling
      */
+    @Async
     public void sendFeedbackNotification(String userEmail, String message) {
         try {
             log.debug("Sending feedback email from {} to support", userEmail);
@@ -104,6 +106,7 @@ public class EmailService {
     /**
      * Send contact us email notification with error handling
      */
+    @Async
     public void sendContactUsNotification(String userName, String userEmail, String subject, String message) {
         try {
             log.debug("Sending contact us email from {} to support", userEmail);
@@ -159,6 +162,7 @@ public class EmailService {
     /**
      * Send credit purchase confirmation email
      */
+    @Async
     public void sendCreditPurchaseConfirmation(String userEmail, long creditsAmount, String packageName, java.math.BigDecimal amount) {
         try {
             log.debug("Sending purchase confirmation email to support for user {}", userEmail);
@@ -219,6 +223,7 @@ public class EmailService {
     /**
      * Send credit purchase notification to admin
      */
+    @Async
     public void sendAdminPurchaseNotification(String userEmail, long creditsAmount, String packageName, java.math.BigDecimal amount) {
         try {
             log.debug("Sending admin purchase notification to support for user {}", userEmail);
@@ -279,6 +284,7 @@ public class EmailService {
     /**
      * Send email verification email
      */
+    @Async
     public void sendVerificationEmail(String userEmail, String verificationUrl) {
         try {
             MimeMessage mimeMessage = javaMailSender.createMimeMessage();
