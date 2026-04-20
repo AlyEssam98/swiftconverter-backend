@@ -21,6 +21,7 @@ public class AuthController {
     private final AuthService authService;
     private final JwtService jwtService;
     private final TokenBlacklistService tokenBlacklistService;
+    private final EmailService emailService;
 
     @PostMapping("/register")
     public ResponseEntity<AuthDto.AuthenticationResponse> register(
@@ -60,7 +61,7 @@ public class AuthController {
     }
 
     @org.springframework.web.bind.annotation.GetMapping("/test-email")
-    public ResponseEntity<java.util.Map<String, String>> testEmail(EmailService emailService) {
+    public ResponseEntity<java.util.Map<String, String>> testEmail() {
         String result = emailService.testEmailConnectivity();
         return ResponseEntity.ok(java.util.Map.of("result", result));
     }
