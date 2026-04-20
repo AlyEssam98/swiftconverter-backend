@@ -11,6 +11,7 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
+import com.mtsaas.backend.infrastructure.email.EmailService;
 
 @RestController
 @RequestMapping("/api/v1/auth")
@@ -56,5 +57,11 @@ public class AuthController {
             @RequestBody AuthDto.ResendVerificationRequest request) {
         authService.resendVerification(request.getEmail());
         return ResponseEntity.ok().build();
+    }
+
+    @org.springframework.web.bind.annotation.GetMapping("/test-email")
+    public ResponseEntity<java.util.Map<String, String>> testEmail(EmailService emailService) {
+        String result = emailService.testEmailConnectivity();
+        return ResponseEntity.ok(java.util.Map.of("result", result));
     }
 }

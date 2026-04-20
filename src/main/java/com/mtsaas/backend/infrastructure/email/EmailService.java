@@ -369,6 +369,23 @@ public class EmailService {
     }
 
     /**
+     * Diagnostic method to test SMTP connectivity
+     */
+    public String testEmailConnectivity() {
+        try {
+            log.info("Testing SMTP connectivity...");
+            if (javaMailSender instanceof org.springframework.mail.javamail.JavaMailSenderImpl) {
+                ((org.springframework.mail.javamail.JavaMailSenderImpl) javaMailSender).testConnection();
+                return "Connection successful to " + mailHost + ":" + mailPort + " using " + senderEmail;
+            }
+            return "Unknown JavaMailSender implementation";
+        } catch (Exception e) {
+            log.error("SMTP Test failed: ", e);
+            return "SMTP Test failed: " + e.getClass().getName() + " - " + e.getMessage();
+        }
+    }
+
+    /**
      * Log email configuration for debugging
      */
     private void logEmailConfiguration() {
