@@ -1,17 +1,20 @@
 package com.mtsaas.backend.infrastructure.email;
 
+import com.sendgrid.Method;
+import com.sendgrid.Request;
+import com.sendgrid.Response;
+import com.sendgrid.SendGrid;
+import com.sendgrid.helpers.mail.Mail;
+import com.sendgrid.helpers.mail.objects.Content;
+import com.sendgrid.helpers.mail.objects.Email;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Lazy;
-import org.springframework.mail.MailAuthenticationException;
-import org.springframework.mail.javamail.JavaMailSender;
-import org.springframework.mail.javamail.MimeMessageHelper;
 import org.springframework.stereotype.Service;
-import jakarta.mail.MessagingException;
-import jakarta.mail.internet.MimeMessage;
 import jakarta.annotation.PostConstruct;
 import org.springframework.scheduling.annotation.Async;
+import java.io.IOException;
 
 @Service
 @Lazy
@@ -19,37 +22,53 @@ import org.springframework.scheduling.annotation.Async;
 @Slf4j
 public class EmailService {
 
-    private final JavaMailSender javaMailSender;
+    private final SendGrid sendGrid;
     private final FallbackEmailService fallbackEmailService;
 
-    @Value("${spring.mail.username:converterswift@gmail.com}")
+    @Value("${sendgrid.from.email:converterswift@gmail.com}")
     private String senderEmail;
 
     @Value("${app.support.email:converterswift@gmail.com}")
     private String supportEmail;
 
-    @Value("${spring.mail.host:smtp.gmail.com}")
-    private String mailHost;
-
-    @Value("${spring.mail.port:587}")
-    private int mailPort;
-
     @PostConstruct
     public void init() {
-        log.info("✓ EmailService initialized - Mail Host: {}, Mail Port: {}, Sender Email: {}, Support Email: {}", 
-                mailHost, mailPort, senderEmail, supportEmail);
+        log.info("✓ EmailService initialized using SendGrid API - Sender Email: {}, Support Email: {}", 
+                senderEmail, supportEmail);
         
         // Validate configuration
-        if (mailHost == null || mailHost.isEmpty()) {
-            log.warn("⚠ MAIL_HOST is not configured");
-        }
         if (senderEmail == null || senderEmail.isEmpty()) {
-            log.warn("⚠ spring.mail.username is not configured (MAIL_USERNAME in .env)");
+            log.warn("⚠ sendgrid.from.email is not configured (SENDGRID_FROM_EMAIL in .env)");
         }
         if (supportEmail == null || supportEmail.isEmpty()) {
             log.warn("⚠ SUPPORT_EMAIL is not configured");
         }
-        log.info("Email configuration loaded from properties");
+        log.info("Email configuration loaded from properties for SendGrid");
+    }
+
+    private void sendEmail(String to, String subject, String htmlContent) {
+        Email from = new Email(senderEmail);
+        Email recipient = new Email(to);
+        Content content = new Content("text/html", htmlContent);
+        Mail mail = new Mail(from, subject, recipient, content);
+
+        Request request = new Request();
+        try {
+            request.setMethod(Method.POST);
+            request.setEndpoint("mail/send");
+            request.setBody(mail.build());
+            Response response = sendGrid.api(request);
+            
+            if (response.getStatusCode() >= 200 && response.getStatusCode() < 300) {
+                log.info("✓ Email sent successfully to {}. Status: {}", to, response.getStatusCode());
+            } else {
+                log.error("❌ Failed to send email to {}. Status: {}, Body: {}", to, response.getStatusCode(), response.getBody());
+                throw new RuntimeException("SendGrid API error: " + response.getStatusCode());
+            }
+        } catch (IOException ex) {
+            log.error("❌ IOException sending email via SendGrid", ex);
+            throw new RuntimeException("SendGrid IO error", ex);
+        }
     }
 
     /**
@@ -59,13 +78,7 @@ public class EmailService {
     public void sendFeedbackNotification(String userEmail, String message) {
         try {
             log.debug("Sending feedback email from {} to support", userEmail);
-            MimeMessage mimeMessage = javaMailSender.createMimeMessage();
-            MimeMessageHelper helper = new MimeMessageHelper(mimeMessage, true, "UTF-8");
-
-            helper.setFrom(supportEmail);  // FROM: support email
-            helper.setTo(supportEmail);    // TO: support email
-            helper.setSubject("New Feedback from SWIFT Converter: " + userEmail);
-
+            
             String htmlContent = String.format(
                     "<html>" +
                     "<body style='font-family: Arial, sans-serif;'>" +
@@ -82,21 +95,8 @@ public class EmailService {
                     message.replace("\n", "<br/>")
             );
 
-            helper.setText(htmlContent, true);
-            javaMailSender.send(mimeMessage);
+            sendEmail(supportEmail, "New Feedback from SWIFT Converter: " + userEmail, htmlContent);
 
-            log.info("✓ Feedback email sent successfully - From: {} To: {}", supportEmail, supportEmail);
-        } catch (MailAuthenticationException e) {
-            log.error("❌ Email authentication failed - Gmail authentication error");
-            log.error("   - Check MAIL_USERNAME and MAIL_PASSWORD in .env file");
-            log.error("   - MAIL_PASSWORD should be a Gmail App Password (16 characters), not your regular password");
-            log.error("   - Ensure 2-factor authentication is enabled on Gmail account");
-            log.error("   - Details: {}", e.getMessage());
-            logEmailConfiguration();
-            fallbackEmailService.logFeedbackEmail(userEmail, message);
-        } catch (MessagingException e) {
-            log.error("❌ Failed to send feedback email: {} - {}", e.getClass().getSimpleName(), e.getMessage());
-            fallbackEmailService.logFeedbackEmail(userEmail, message);
         } catch (Exception e) {
             log.error("❌ Unexpected error sending feedback email", e);
             fallbackEmailService.logFeedbackEmail(userEmail, message);
@@ -110,12 +110,6 @@ public class EmailService {
     public void sendContactUsNotification(String userName, String userEmail, String subject, String message) {
         try {
             log.debug("Sending contact us email from {} to support", userEmail);
-            MimeMessage mimeMessage = javaMailSender.createMimeMessage();
-            MimeMessageHelper helper = new MimeMessageHelper(mimeMessage, true, "UTF-8");
-
-            helper.setFrom(supportEmail);  // FROM: support email
-            helper.setTo(supportEmail);    // TO: support email
-            helper.setSubject("New Contact Us Message: " + subject);
 
             String htmlContent = String.format(
                     "<html>" +
@@ -138,21 +132,8 @@ public class EmailService {
                     userEmail
             );
 
-            helper.setText(htmlContent, true);
-            javaMailSender.send(mimeMessage);
+            sendEmail(supportEmail, "New Contact Us Message: " + subject, htmlContent);
 
-            log.info("✓ Contact Us email sent successfully - From: {} To: {} ReplyTo: {}", supportEmail, supportEmail, userEmail);
-        } catch (MailAuthenticationException e) {
-            log.error("❌ Email authentication failed - Gmail authentication error");
-            log.error("   - Check MAIL_USERNAME and MAIL_PASSWORD in .env file");
-            log.error("   - MAIL_PASSWORD should be a Gmail App Password (16 characters), not your regular password");
-            log.error("   - Ensure 2-factor authentication is enabled on Gmail account");
-            log.error("   - Details: {}", e.getMessage());
-            logEmailConfiguration();
-            fallbackEmailService.logContactUsEmail(userName, userEmail, subject, message);
-        } catch (MessagingException e) {
-            log.error("❌ Failed to send contact us email: {} - {}", e.getClass().getSimpleName(), e.getMessage());
-            fallbackEmailService.logContactUsEmail(userName, userEmail, subject, message);
         } catch (Exception e) {
             log.error("❌ Unexpected error sending contact us email", e);
             fallbackEmailService.logContactUsEmail(userName, userEmail, subject, message);
@@ -166,12 +147,6 @@ public class EmailService {
     public void sendCreditPurchaseConfirmation(String userEmail, long creditsAmount, String packageName, java.math.BigDecimal amount) {
         try {
             log.debug("Sending purchase confirmation email to support for user {}", userEmail);
-            MimeMessage mimeMessage = javaMailSender.createMimeMessage();
-            MimeMessageHelper helper = new MimeMessageHelper(mimeMessage, true, "UTF-8");
-
-            helper.setFrom(supportEmail);      // FROM: support email
-            helper.setTo(supportEmail);        // TO: support email
-            helper.setSubject("Purchase Confirmation - " + userEmail);
 
             String htmlContent = String.format(
                     "<html>" +
@@ -206,15 +181,8 @@ public class EmailService {
                     userEmail, packageName, creditsAmount, amount
             );
 
-            helper.setText(htmlContent, true);
-            javaMailSender.send(mimeMessage);
+            sendEmail(supportEmail, "Purchase Confirmation - " + userEmail, htmlContent);
 
-            log.info("✓ Purchase confirmation email sent to support for user {} ({} credits)", userEmail, creditsAmount);
-        } catch (MailAuthenticationException e) {
-            log.error("❌ Email authentication failed - Check MAIL_PASSWORD in .env. Details: {}", e.getMessage());
-            logEmailConfiguration();
-        } catch (MessagingException e) {
-            log.error("❌ Failed to send purchase confirmation email: {} - {}", e.getClass().getSimpleName(), e.getMessage());
         } catch (Exception e) {
             log.error("❌ Unexpected error sending purchase confirmation email", e);
         }
@@ -227,12 +195,6 @@ public class EmailService {
     public void sendAdminPurchaseNotification(String userEmail, long creditsAmount, String packageName, java.math.BigDecimal amount) {
         try {
             log.debug("Sending admin purchase notification to support for user {}", userEmail);
-            MimeMessage mimeMessage = javaMailSender.createMimeMessage();
-            MimeMessageHelper helper = new MimeMessageHelper(mimeMessage, true, "UTF-8");
-
-            helper.setFrom(supportEmail);     // FROM: support email
-            helper.setTo(supportEmail);       // TO: support email
-            helper.setSubject("[ALERT] Purchase Completed - " + userEmail);
 
             String htmlContent = String.format(
                     "<html>" +
@@ -267,15 +229,8 @@ public class EmailService {
                     java.time.LocalDateTime.now().format(java.time.format.DateTimeFormatter.ISO_LOCAL_DATE_TIME)
             );
 
-            helper.setText(htmlContent, true);
-            javaMailSender.send(mimeMessage);
+            sendEmail(supportEmail, "[ALERT] Purchase Completed - " + userEmail, htmlContent);
 
-            log.info("✓ Admin purchase notification sent to support for {}", userEmail);
-        } catch (MailAuthenticationException e) {
-            log.error("❌ Email authentication failed - Check MAIL_PASSWORD in .env. Details: {}", e.getMessage());
-            logEmailConfiguration();
-        } catch (MessagingException e) {
-            log.error("❌ Failed to send admin notification email: {} - {}", e.getClass().getSimpleName(), e.getMessage());
         } catch (Exception e) {
             log.error("❌ Unexpected error sending admin notification email", e);
         }
@@ -287,16 +242,6 @@ public class EmailService {
     @Async
     public void sendVerificationEmail(String userEmail, String verificationUrl) {
         try {
-            MimeMessage mimeMessage = javaMailSender.createMimeMessage();
-            MimeMessageHelper helper = new MimeMessageHelper(mimeMessage, true, "UTF-8");
-
-            helper.setFrom(senderEmail);
-            helper.setTo(userEmail);
-            helper.setSubject("Verify your SWIFT Converter Pro account");
-
-            // Hide sender from reply-to
-            helper.setReplyTo(supportEmail);
-
             String htmlContent = String.format(
                 "<!DOCTYPE html>" +
                 "<html>" +
@@ -351,17 +296,8 @@ public class EmailService {
                 verificationUrl, verificationUrl
             );
 
-            helper.setText(htmlContent, true);
-            javaMailSender.send(mimeMessage);
+            sendEmail(userEmail, "Verify your SWIFT Converter Pro account", htmlContent);
 
-            log.info("✓ Verification email sent to {}", userEmail);
-        } catch (MailAuthenticationException e) {
-            log.error("❌ Email authentication failed - Check MAIL_PASSWORD in .env. Details: {}", e.getMessage());
-            logEmailConfiguration();
-            fallbackEmailService.logVerificationEmail(userEmail, verificationUrl);
-        } catch (MessagingException e) {
-            log.error("❌ Failed to send verification email: {} - {}", e.getClass().getSimpleName(), e.getMessage());
-            fallbackEmailService.logVerificationEmail(userEmail, verificationUrl);
         } catch (Exception e) {
             log.error("❌ Unexpected error sending verification email", e);
             fallbackEmailService.logVerificationEmail(userEmail, verificationUrl);
@@ -369,43 +305,25 @@ public class EmailService {
     }
 
     /**
-     * Diagnostic method to test SMTP connectivity
+     * Diagnostic method to test SendGrid connectivity
      */
     public String testEmailConnectivity() {
         try {
-            log.info("Testing SMTP connectivity to {}:{}...", mailHost, mailPort);
-            if (javaMailSender instanceof org.springframework.mail.javamail.JavaMailSenderImpl) {
-                org.springframework.mail.javamail.JavaMailSenderImpl impl = (org.springframework.mail.javamail.JavaMailSenderImpl) javaMailSender;
-                
-                // Log effective properties
-                log.info("SMTP Session Properties:");
-                impl.getJavaMailProperties().forEach((k, v) -> log.info("  {} = {}", k, v));
-                
-                impl.testConnection();
-                return "Connection successful to " + mailHost + ":" + mailPort + " using " + senderEmail;
+            log.info("Testing SendGrid connectivity...");
+            Request request = new Request();
+            request.setMethod(Method.GET);
+            request.setEndpoint("user/profile");
+            Response response = sendGrid.api(request);
+            
+            if (response.getStatusCode() == 200) {
+                return "Connection successful to SendGrid API. Status: " + response.getStatusCode();
+            } else {
+                return "SendGrid API returned status: " + response.getStatusCode() + ". Body: " + response.getBody();
             }
-            return "Unknown JavaMailSender implementation: " + javaMailSender.getClass().getName();
         } catch (Exception e) {
-            log.error("SMTP Test failed for host: {}, port: {}", mailHost, mailPort);
+            log.error("SendGrid Test failed");
             log.error("Exception Details: ", e);
-            
-            String errorMessage = e.getMessage();
-            if (e.getCause() != null) {
-                errorMessage += " | Cause: " + e.getCause().getMessage();
-            }
-            
-            return String.format("SMTP Test failed: %s - %s. Host: %s, Port: %d. Check if port is blocked by firewall.", 
-                    e.getClass().getSimpleName(), errorMessage, mailHost, mailPort);
+            return "SendGrid Test failed: " + e.getMessage();
         }
-    }
-
-    /**
-     * Log email configuration for debugging
-     */
-    private void logEmailConfiguration() {
-        String maskedEmail = senderEmail != null && senderEmail.length() > 3 
-            ? senderEmail.substring(0, 3) + "***" 
-            : "***";
-        log.info("Email Configuration: host={}, port={}, username={}", mailHost, mailPort, maskedEmail);
     }
 }
