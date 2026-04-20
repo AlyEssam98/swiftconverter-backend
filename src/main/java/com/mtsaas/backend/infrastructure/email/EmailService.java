@@ -373,15 +373,29 @@ public class EmailService {
      */
     public String testEmailConnectivity() {
         try {
-            log.info("Testing SMTP connectivity...");
+            log.info("Testing SMTP connectivity to {}:{}...", mailHost, mailPort);
             if (javaMailSender instanceof org.springframework.mail.javamail.JavaMailSenderImpl) {
-                ((org.springframework.mail.javamail.JavaMailSenderImpl) javaMailSender).testConnection();
+                org.springframework.mail.javamail.JavaMailSenderImpl impl = (org.springframework.mail.javamail.JavaMailSenderImpl) javaMailSender;
+                
+                // Log effective properties
+                log.info("SMTP Session Properties:");
+                impl.getJavaMailProperties().forEach((k, v) -> log.info("  {} = {}", k, v));
+                
+                impl.testConnection();
                 return "Connection successful to " + mailHost + ":" + mailPort + " using " + senderEmail;
             }
-            return "Unknown JavaMailSender implementation";
+            return "Unknown JavaMailSender implementation: " + javaMailSender.getClass().getName();
         } catch (Exception e) {
-            log.error("SMTP Test failed: ", e);
-            return "SMTP Test failed: " + e.getClass().getName() + " - " + e.getMessage();
+            log.error("SMTP Test failed for host: {}, port: {}", mailHost, mailPort);
+            log.error("Exception Details: ", e);
+            
+            String errorMessage = e.getMessage();
+            if (e.getCause() != null) {
+                errorMessage += " | Cause: " + e.getCause().getMessage();
+            }
+            
+            return String.format("SMTP Test failed: %s - %s. Host: %s, Port: %d. Check if port is blocked by firewall.", 
+                    e.getClass().getSimpleName(), errorMessage, mailHost, mailPort);
         }
     }
 
