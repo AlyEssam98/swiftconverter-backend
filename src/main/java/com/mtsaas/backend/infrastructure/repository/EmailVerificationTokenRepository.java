@@ -7,6 +7,8 @@ import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.stereotype.Repository;
 
+import org.springframework.data.repository.query.Param;
+
 import java.util.Optional;
 import java.util.UUID;
 
@@ -17,5 +19,5 @@ public interface EmailVerificationTokenRepository extends JpaRepository<EmailVer
 
     @Modifying
     @Query("DELETE FROM EmailVerificationToken t WHERE t.user = :user")
-    void deleteAllByUser(User user);
+    void deleteAllByUser(@Param("user") User user);
 }

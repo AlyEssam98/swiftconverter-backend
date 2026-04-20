@@ -16,7 +16,7 @@ import java.util.UUID;
 @AllArgsConstructor
 @Entity
 @Table(name = "email_verification_tokens", indexes = {
-        @Index(name = "idx_verification_token", columnList = "tokenHash", unique = true),
+        @Index(name = "idx_verification_token", columnList = "token_hash", unique = true),
         @Index(name = "idx_verification_user", columnList = "user_id")
 })
 public class EmailVerificationToken {

@@ -17,8 +17,6 @@ public interface UserRepository extends JpaRepository<User, UUID> {
 
     boolean existsByEmail(String email);
     
-    Optional<User> findByEmailVerificationToken(String token);
-    
     /**
      * Find user by email with pessimistic write lock to prevent race conditions
      * during concurrent user creation attempts.
