@@ -37,6 +37,7 @@ public class CreditService {
         private final StripeService stripeService;
 
 
+        @Transactional
         public CreditBalanceResponse getUserCreditBalance(String email) {
                 User user = userRepository.findByEmail(email)
                                 .orElseThrow(() -> new RuntimeException("User not found: " + email));
@@ -44,15 +45,8 @@ public class CreditService {
                 LocalDateTime now = LocalDateTime.now();
                 log.info("=== Getting credit balance for user: {} at: {}", email, now);
                 
-                // Mark expired purchases as expired
-                List<CreditPurchase> expiredPurchases = creditPurchaseRepository.findExpiredPurchases(user, now);
-                log.info("Found {} expired purchases to mark", expiredPurchases.size());
-                for (CreditPurchase purchase : expiredPurchases) {
-                        purchase.setExpired(true);
-                        creditPurchaseRepository.save(purchase);
-                        log.info("  - Marked expired: {} credits, Expiry was: {}", 
-                                purchase.getCreditAmount(), purchase.getExpiryDate());
-                }
+                // Mark expired purchases as expired (Bulk update for performance)
+                creditPurchaseRepository.markExpiredPurchases(user, now);
 
                 // Get available credits from valid (non-expired) purchases
                 Long purchaseCredits = creditPurchaseRepository.getAvailableCredits(user, now);
@@ -73,12 +67,6 @@ public class CreditService {
                 
                 // Get earliest expiry date from valid purchases
                 List<CreditPurchase> validPurchases = creditPurchaseRepository.findValidPurchases(user, now);
-                log.info("Found {} valid (non-expired) purchases", validPurchases.size());
-                validPurchases.forEach(p -> {
-                        long daysLeft = ChronoUnit.DAYS.between(now, p.getExpiryDate());
-                        log.info("  - Purchase: {} credits, Expires: {} ({} days remaining)", 
-                                p.getCreditAmount(), p.getExpiryDate(), daysLeft);
-                });
                 
                 String subscriptionStatus = validPurchases.isEmpty() ? "NOT_SUBSCRIBED" : "ACTIVE";
                 Long daysUntilExpiry = null;

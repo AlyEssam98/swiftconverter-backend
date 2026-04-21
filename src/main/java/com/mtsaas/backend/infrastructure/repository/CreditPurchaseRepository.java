@@ -3,9 +3,11 @@ package com.mtsaas.backend.infrastructure.repository;
 import com.mtsaas.backend.domain.CreditPurchase;
 import com.mtsaas.backend.domain.User;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
 import java.util.List;
@@ -41,4 +43,12 @@ public interface CreditPurchaseRepository extends JpaRepository<CreditPurchase, 
      * Find all purchases by user
      */
     List<CreditPurchase> findByUser(User user);
+
+    /**
+     * Bulk update expired purchases for a user
+     */
+    @Modifying
+    @Transactional
+    @Query("UPDATE CreditPurchase cp SET cp.expired = true WHERE cp.user = :user AND cp.expiryDate <= :now AND cp.expired = false")
+    void markExpiredPurchases(@Param("user") User user, @Param("now") LocalDateTime now);
 }
