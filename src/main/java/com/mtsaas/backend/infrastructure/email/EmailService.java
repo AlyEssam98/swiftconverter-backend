@@ -47,7 +47,14 @@ public class EmailService {
     }
 
     private void sendEmail(String to, String subject, String htmlContent) {
-        Email from = new Email(senderEmail);
+        log.info("Attempting to send email to: {}, Subject: {}", to, subject);
+        
+        if (to == null || to.isEmpty() || to.contains("placeholder")) {
+            log.error("❌ Aborting email send: Invalid recipient address: '{}'", to);
+            return;
+        }
+
+        Email from = new Email(senderEmail, "Swift MX Bridge");
         Email recipient = new Email(to);
         Content content = new Content("text/html", htmlContent);
         Mail mail = new Mail(from, subject, recipient, content);
@@ -62,11 +69,11 @@ public class EmailService {
             if (response.getStatusCode() >= 200 && response.getStatusCode() < 300) {
                 log.info("✓ Email sent successfully to {}. Status: {}", to, response.getStatusCode());
             } else {
-                log.error("❌ Failed to send email to {}. Status: {}, Body: {}", to, response.getStatusCode(), response.getBody());
-                throw new RuntimeException("SendGrid API error: " + response.getStatusCode());
+                log.error("❌ SendGrid Error for {}: Status: {}, Body: {}", to, response.getStatusCode(), response.getBody());
+                throw new RuntimeException("SendGrid API error: " + response.getStatusCode() + " - " + response.getBody());
             }
         } catch (IOException ex) {
-            log.error("❌ IOException sending email via SendGrid", ex);
+            log.error("❌ SendGrid IOException for {}: {}", to, ex.getMessage());
             throw new RuntimeException("SendGrid IO error", ex);
         }
     }
@@ -76,8 +83,9 @@ public class EmailService {
      */
     @Async
     public void sendFeedbackNotification(String userEmail, String message) {
+        log.info("Triggering Feedback notification for user: {}", userEmail);
         try {
-            log.debug("Sending feedback email from {} to support", userEmail);
+            log.debug("Sending feedback email from {} to support ({})", userEmail, supportEmail);
             
             String htmlContent = String.format(
                     "<html>" +
@@ -98,7 +106,7 @@ public class EmailService {
             sendEmail(supportEmail, "New Feedback from Swift MX Bridge: " + userEmail, htmlContent);
 
         } catch (Exception e) {
-            log.error("❌ Unexpected error sending feedback email", e);
+            log.error("❌ Unexpected error in sendFeedbackNotification", e);
             fallbackEmailService.logFeedbackEmail(userEmail, message);
         }
     }
@@ -108,8 +116,9 @@ public class EmailService {
      */
     @Async
     public void sendContactUsNotification(String userName, String userEmail, String subject, String message) {
+        log.info("Triggering Contact Us notification from user: {} ({})", userName, userEmail);
         try {
-            log.debug("Sending contact us email from {} to support", userEmail);
+            log.debug("Sending contact us email from {} to support ({})", userEmail, supportEmail);
 
             String htmlContent = String.format(
                     "<html>" +
@@ -145,8 +154,9 @@ public class EmailService {
      */
     @Async
     public void sendCreditPurchaseConfirmation(String userEmail, long creditsAmount, String packageName, java.math.BigDecimal amount) {
+        log.info("Triggering Purchase Confirmation for user: {}", userEmail);
         try {
-            log.debug("Sending purchase confirmation email to support for user {}", userEmail);
+            log.debug("Sending purchase confirmation email to customer {} and support notification ({})", userEmail, supportEmail);
 
             String htmlContent = String.format(
                     "<html>" +
