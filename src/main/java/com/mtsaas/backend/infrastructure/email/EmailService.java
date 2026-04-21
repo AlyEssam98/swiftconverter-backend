@@ -47,10 +47,8 @@ public class EmailService {
     }
 
     private void sendEmail(String to, String subject, String htmlContent) {
-        log.info("Attempting to send email to: {}, Subject: {}", to, subject);
-        
         if (to == null || to.isEmpty() || to.contains("placeholder")) {
-            log.error("❌ Aborting email send: Invalid recipient address: '{}'", to);
+            log.error("❌ Invalid recipient address: '{}'", to);
             return;
         }
 
@@ -67,7 +65,7 @@ public class EmailService {
             Response response = sendGrid.api(request);
             
             if (response.getStatusCode() >= 200 && response.getStatusCode() < 300) {
-                log.info("✓ Email sent successfully to {}. Status: {}", to, response.getStatusCode());
+                log.info("✓ Email sent to {}", to);
             } else {
                 log.error("❌ SendGrid Error for {}: Status: {}, Body: {}", to, response.getStatusCode(), response.getBody());
                 throw new RuntimeException("SendGrid API error: " + response.getStatusCode() + " - " + response.getBody());
@@ -83,9 +81,8 @@ public class EmailService {
      */
     @Async
     public void sendFeedbackNotification(String userEmail, String message) {
-        log.info("Triggering Feedback notification for user: {}", userEmail);
         try {
-            log.debug("Sending feedback email from {} to support ({})", userEmail, supportEmail);
+            log.debug("Sending feedback email from {} to support", userEmail);
             
             String htmlContent = String.format(
                     "<html>" +
@@ -116,9 +113,8 @@ public class EmailService {
      */
     @Async
     public void sendContactUsNotification(String userName, String userEmail, String subject, String message) {
-        log.info("Triggering Contact Us notification from user: {} ({})", userName, userEmail);
         try {
-            log.debug("Sending contact us email from {} to support ({})", userEmail, supportEmail);
+            log.debug("Sending contact us email from {} to support", userEmail);
 
             String htmlContent = String.format(
                     "<html>" +
@@ -154,9 +150,8 @@ public class EmailService {
      */
     @Async
     public void sendCreditPurchaseConfirmation(String userEmail, long creditsAmount, String packageName, java.math.BigDecimal amount) {
-        log.info("Triggering Purchase Confirmation for user: {}", userEmail);
         try {
-            log.debug("Sending purchase confirmation email to customer {} and support notification ({})", userEmail, supportEmail);
+            log.debug("Sending purchase confirmation email to customer {}", userEmail);
 
             String htmlContent = String.format(
                     "<html>" +
