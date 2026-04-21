@@ -11,6 +11,7 @@ import com.mtsaas.backend.dto.CreditBalanceResponse;
 import com.mtsaas.backend.dto.CreditPackageResponse;
 import com.mtsaas.backend.dto.PurchaseCreditsResponse;
 import com.mtsaas.backend.dto.CreditUsageResponse;
+import com.mtsaas.backend.infrastructure.email.EmailService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -35,6 +36,7 @@ public class CreditService {
         private final CreditUsageRepository creditUsageRepository;
         private final CreditPurchaseRepository creditPurchaseRepository;
         private final StripeService stripeService;
+        private final EmailService emailService;
 
 
         @Transactional
@@ -202,28 +204,35 @@ public class CreditService {
                 log.info("Fulfilled purchase: {} credits for user: {}. Transaction: {}",
                                 amount, user.getEmail(), transactionId);
 
-                // Email sending disabled
-                // try {
-                //         String packageName = determinePackageName(amount);
-                //         BigDecimal packagePrice = determinePackagePrice(amount);
-                //         
-                //         log.info("Sending admin notification for purchase: Package={}, Amount=${}", packageName, packagePrice);
-                //         
-                //         // Send admin notification
-                //         emailService.sendAdminPurchaseNotification(
-                //                 user.getEmail(),
-                //                 amount,
-                //                 packageName,
-                //                 packagePrice
-                //         );
-                //         log.info("✓ Sent admin purchase notification");
-                //         
-                //         log.info("✓ Purchase notification email sent for transaction: {}", transactionId);
-                // } catch (Exception e) {
-                //         log.error("⚠ Failed to send purchase notification email for transaction {}: {}",
-                //                 transactionId, e.getMessage(), e);
-                //         // Don't throw exception - email is not critical to credit fulfillment
-                // }
+                // Email sending
+                try {
+                        String packageName = determinePackageName(amount);
+                        BigDecimal packagePrice = determinePackagePrice(amount);
+                        
+                        log.info("Sending admin notification for purchase: Package={}, Amount=${}", packageName, packagePrice);
+                        
+                        // Send admin notification
+                        emailService.sendAdminPurchaseNotification(
+                                user.getEmail(),
+                                amount,
+                                packageName,
+                                packagePrice
+                        );
+                        log.info("✓ Sent admin purchase notification");
+                        
+                        // Also send customer confirmation
+                        emailService.sendCreditPurchaseConfirmation(
+                                user.getEmail(),
+                                amount,
+                                packageName,
+                                packagePrice
+                        );
+                        log.info("✓ Purchase notification emails sent for transaction: {}", transactionId);
+                } catch (Exception e) {
+                        log.error("⚠ Failed to send purchase notification emails for transaction {}: {}",
+                                transactionId, e.getMessage(), e);
+                        // Don't throw exception - email is not critical to credit fulfillment
+                }
         }
 
 
@@ -346,5 +355,17 @@ public class CreditService {
                 
                 creditUsageRepository.save(usage);
                 log.info("Recorded usage: {} credits for user: {}", creditsUsed, user.getEmail());
+        }
+
+        private String determinePackageName(long credits) {
+                if (credits <= 50) return "Starter Pack";
+                if (credits <= 200) return "Professional Pack";
+                return "Enterprise Pack";
+        }
+
+        private BigDecimal determinePackagePrice(long credits) {
+                if (credits <= 50) return new BigDecimal("9.99");
+                if (credits <= 200) return new BigDecimal("29.99");
+                return new BigDecimal("69.99");
         }
 }

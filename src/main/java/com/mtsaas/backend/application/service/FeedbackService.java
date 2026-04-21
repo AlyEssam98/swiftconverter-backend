@@ -5,6 +5,7 @@ import com.mtsaas.backend.domain.Feedback;
 import com.mtsaas.backend.domain.User;
 import com.mtsaas.backend.infrastructure.repository.FeedbackRepository;
 import com.mtsaas.backend.infrastructure.repository.UserRepository;
+import com.mtsaas.backend.infrastructure.email.EmailService;
 import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -21,6 +22,7 @@ public class FeedbackService {
 
     private final FeedbackRepository feedbackRepository;
     private final UserRepository userRepository;
+    private final EmailService emailService;
 
     @Transactional
     public FeedbackDto.FeedbackResponse submitFeedback(String email, FeedbackDto.FeedbackRequest request, HttpServletRequest httpRequest) {
@@ -44,16 +46,16 @@ public class FeedbackService {
 
         Feedback feedback = feedbackRepository.save(builder.build());
 
-        // Email sending disabled
-        // if (email != null) {
-        //     try {
-        //         emailService.sendFeedbackNotification(email, request.getMessage());
-        //         log.info("Feedback email notification sent for user: {}", email);
-        //     } catch (Exception e) {
-        //         // Log but don't fail the request if email fails
-        //         log.error("Failed to send feedback email notification for user {}: {}", email, e.getMessage(), e);
-        //     }
-        // }
+        // Email sending
+        if (email != null) {
+            try {
+                emailService.sendFeedbackNotification(email, request.getMessage());
+                log.info("Feedback email notification sent for user: {}", email);
+            } catch (Exception e) {
+                // Log but don't fail the request if email fails
+                log.error("Failed to send feedback email notification for user {}: {}", email, e.getMessage(), e);
+            }
+        }
 
         return mapToResponse(feedback);
     }

@@ -5,6 +5,7 @@ import com.mtsaas.backend.domain.ContactUs;
 import com.mtsaas.backend.domain.User;
 import com.mtsaas.backend.infrastructure.repository.ContactUsRepository;
 import com.mtsaas.backend.infrastructure.repository.UserRepository;
+import com.mtsaas.backend.infrastructure.email.EmailService;
 import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -21,6 +22,7 @@ public class ContactUsService {
 
     private final ContactUsRepository contactUsRepository;
     private final UserRepository userRepository;
+    private final EmailService emailService;
 
     @Transactional
     public ContactUsDto.ContactUsResponse submitContactUs(String email, ContactUsDto.ContactUsRequest request, HttpServletRequest httpRequest) {
@@ -61,23 +63,23 @@ public class ContactUsService {
             ContactUs contactUs = contactUsRepository.save(builder.build());
             log.info("Contact Us saved to database with ID: {}", contactUs.getId());
 
-            // Email sending disabled
-            // if (userEmail != null && !userEmail.equals("anonymous@contact")) {
-            //     try {
-            //         emailService.sendContactUsNotification(
-            //                 userName,
-            //                 userEmail,
-            //                 subject,
-            //                 request.getMessage()
-            //         );
-            //         log.info("✓ Contact Us email notification sent from: {}", userEmail);
-            //     } catch (Exception e) {
-            //         log.warn("Failed to send contact us email notification from {}: {}", userEmail, e.getMessage());
-            //         // Don't fail the request if email fails - response still succeeds
-            //     }
-            // } else {
-            //     log.info("Contact Us message from anonymous user stored in database (no email to contact back)");
-            // }
+            // Email sending
+            if (userEmail != null && !userEmail.equals("anonymous@contact")) {
+                try {
+                    emailService.sendContactUsNotification(
+                            userName,
+                            userEmail,
+                            subject,
+                            request.getMessage()
+                    );
+                    log.info("✓ Contact Us email notification sent from: {}", userEmail);
+                } catch (Exception e) {
+                    log.warn("Failed to send contact us email notification from {}: {}", userEmail, e.getMessage());
+                    // Don't fail the request if email fails - response still succeeds
+                }
+            } else {
+                log.info("Contact Us message from anonymous user stored in database (no email to contact back)");
+            }
 
             return mapToResponse(contactUs);
         } catch (Exception e) {

@@ -25,10 +25,10 @@ public class EmailService {
     private final SendGrid sendGrid;
     private final FallbackEmailService fallbackEmailService;
 
-    @Value("${sendgrid.from.email:converterswift@gmail.com}")
+    @Value("${sendgrid.from.email:support@swiftmxbridge.com}")
     private String senderEmail;
 
-    @Value("${app.support.email:converterswift@gmail.com}")
+    @Value("${app.support.email:support@swiftmxbridge.com}")
     private String supportEmail;
 
     @PostConstruct
