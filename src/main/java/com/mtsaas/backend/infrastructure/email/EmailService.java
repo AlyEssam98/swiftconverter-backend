@@ -87,7 +87,7 @@ public class EmailService {
                     "<p><strong>Message:</strong></p>" +
                     "<p style='background-color: #f5f5f5; padding: 15px; border-left: 4px solid #007bff;'>%s</p>" +
                     "<p style='color: #666; font-size: 12px; margin-top: 20px;'>" +
-                    "This is an automated notification from SWIFT Converter." +
+                    "This is an automated notification from Swift MX Bridge." +
                     "</p>" +
                     "</body>" +
                     "</html>",
@@ -95,7 +95,7 @@ public class EmailService {
                     message.replace("\n", "<br/>")
             );
 
-            sendEmail(supportEmail, "New Feedback from SWIFT Converter: " + userEmail, htmlContent);
+            sendEmail(supportEmail, "New Feedback from Swift MX Bridge: " + userEmail, htmlContent);
 
         } catch (Exception e) {
             log.error("❌ Unexpected error sending feedback email", e);
@@ -121,7 +121,7 @@ public class EmailService {
                     "<p style='background-color: #f5f5f5; padding: 15px; border-left: 4px solid #007bff;'>%s</p>" +
                     "<hr style='margin: 20px 0; border: none; border-top: 1px solid #ddd;'>" +
                     "<p style='color: #666; font-size: 12px;'>" +
-                    "This is an automated notification from SWIFT Converter. Reply to: %s" +
+                    "This is an automated notification from Swift MX Bridge. Reply to: %s" +
                     "</p>" +
                     "</body>" +
                     "</html>",
@@ -174,7 +174,7 @@ public class EmailService {
                     "<p><strong>Valid for 30 days from purchase date.</strong></p>" +
                     "<p>Credits have been added to customer account.</p>" +
                     "<hr style='margin: 30px 0; border: none; border-top: 1px solid #ddd;'>" +
-                    "<p style='color: #666; font-size: 12px;'>Automated notification from SWIFT Converter system</p>" +
+                    "<p style='color: #666; font-size: 12px;'>Automated notification from Swift MX Bridge system</p>" +
                     "</div>" +
                     "</body>" +
                     "</html>",
@@ -272,11 +272,11 @@ public class EmailService {
                 "    <div class='wrapper'>" +
                 "        <div class='container'>" +
                 "            <div class='header'>" +
-                "                <h1>SWIFT Converter Pro</h1>" +
+                "                <h1>Swift MX Bridge</h1>" +
                 "            </div>" +
                 "            <div class='content'>" +
                 "                <h2>Confirm your email address</h2>" +
-                "                <p>Thanks for joining SWIFT Converter Pro. We're excited to help you streamline your MT to MX conversion workflow.</p>" +
+                "                <p>Thanks for joining Swift MX Bridge. We're excited to help you streamline your MT to MX conversion workflow.</p>" +
                 "                <div class='perks'>" +
                 "                    <div class='perks-title'>Unlock your account to get:</div>" +
                 "                    <div class='perk-item'>• 5 Welcome Credits (instantly)</div>" +
@@ -289,7 +289,7 @@ public class EmailService {
                 "                <p class='expiry'>This link expires in 30 minutes for security reasons. If you didn't create an account, you can safely ignore this email.</p>" +
                 "            </div>" +
                 "            <div class='footer'>" +
-                "                <p>&copy; 2026 SWIFT Converter Pro. All rights reserved.</p>" +
+                "                <p>&copy; 2026 Swift MX Bridge. All rights reserved.</p>" +
                 "                <p>Built for professionals by MtSaas Team</p>" +
                 "            </div>" +
                 "        </div>" +
@@ -299,7 +299,7 @@ public class EmailService {
                 verificationUrl
             );
 
-            sendEmail(userEmail, "Confirm your account - SWIFT Converter Pro", htmlContent);
+            sendEmail(userEmail, "Confirm your account - Swift MX Bridge", htmlContent);
 
         } catch (Exception e) {
             log.error("❌ Unexpected error sending verification email", e);

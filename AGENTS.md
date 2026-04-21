@@ -1,4 +1,4 @@
-# AI Agent Guidelines for MtSaas Backend
+# AI Agent Guidelines for Swift MX Bridge Backend
 
 ## Architecture Overview
 This is a Spring Boot 3.2.3 application providing SWIFT MT-MX message conversion SaaS. Follows clean architecture with layered separation:
