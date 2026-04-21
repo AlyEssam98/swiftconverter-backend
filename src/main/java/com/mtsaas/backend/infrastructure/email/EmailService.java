@@ -244,59 +244,62 @@ public class EmailService {
         try {
             String htmlContent = String.format(
                 "<!DOCTYPE html>" +
-                "<html>" +
+                "<html lang='en'>" +
                 "<head>" +
                 "    <meta charset='UTF-8'>" +
                 "    <meta name='viewport' content='width=device-width, initial-scale=1.0'>" +
-                "    <title>Verify Your SWIFT Converter Pro Account</title>" +
+                "    <title>Verify Your Account</title>" +
                 "    <style>" +
-                "        body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; line-height: 1.6; color: #333; }" +
-                "        .container { max-width: 600px; margin: 0 auto; padding: 20px; }" +
-                "        .header { background: linear-gradient(135deg, #667eea 0%%, #764ba2 100%%); padding: 30px; text-align: center; border-radius: 8px; }" +
-                "        .header h1 { color: white; margin: 0; font-size: 28px; }" +
-                "        .content { background: #f9f9f9; padding: 30px; border-radius: 8px; margin: 20px 0; }" +
-                "        .button { display: inline-block; background: #4CAF50; color: white; padding: 12px 30px; text-decoration: none; border-radius: 5px; margin: 20px 0; }" +
-                "        .footer { text-align: center; color: #666; font-size: 14px; margin-top: 30px; }" +
+                "        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap');" +
+                "        body { font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; line-height: 1.5; color: #1f2937; background-color: #f3f4f6; margin: 0; padding: 0; }" +
+                "        .wrapper { background-color: #f3f4f6; padding: 40px 20px; }" +
+                "        .container { max-width: 560px; margin: 0 auto; background: #ffffff; border-radius: 16px; overflow: hidden; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06); }" +
+                "        .header { background-color: #2563eb; background: linear-gradient(135deg, #2563eb 0%%, #4f46e5 100%%); padding: 40px 30px; text-align: center; }" +
+                "        .header h1 { color: #ffffff; margin: 0; font-size: 24px; font-weight: 700; letter-spacing: -0.025em; }" +
+                "        .content { padding: 40px 30px; }" +
+                "        .content h2 { color: #111827; margin-top: 0; font-size: 20px; font-weight: 600; }" +
+                "        .content p { color: #4b5563; font-size: 16px; margin-bottom: 24px; }" +
+                "        .perks { background-color: #f9fafb; border-radius: 12px; padding: 20px; margin-bottom: 30px; }" +
+                "        .perks-title { font-weight: 600; color: #374151; font-size: 14px; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 12px; }" +
+                "        .perk-item { display: flex; align-items: center; margin-bottom: 8px; color: #4b5563; font-size: 15px; }" +
+                "        .button-wrapper { text-align: center; margin-top: 30px; }" +
+                "        .button { display: inline-block; background-color: #2563eb; color: #ffffff !important; padding: 14px 32px; text-decoration: none; border-radius: 8px; font-weight: 600; font-size: 16px; transition: background-color 0.2s; }" +
+                "        .footer { text-align: center; padding: 30px; font-size: 14px; color: #9ca3af; }" +
+                "        .expiry { font-size: 13px; color: #9ca3af; margin-top: 24px; font-style: italic; }" +
                 "    </style>" +
                 "</head>" +
                 "<body>" +
-                "    <div class='container'>" +
-                "        <div class='header'>" +
-                "            <h1>SWIFT Converter Pro</h1>" +
-                "        </div>" +
-                "        <div class='content'>" +
-                "            <h2>Welcome to SWIFT Converter Pro!</h2>" +
-                "            <p>Thank you for signing up. To complete your registration and start using our MT to MX conversion tools, please verify your email address.</p>" +
-                "            <p><strong>Why verify?</strong></p>" +
-                "            <ul>" +
-                "                <li>✅ Get 5 free credits to start</li>" +
-                "                <li>✅ Access MT103, MT202, MT940 conversion</li>" +
-                "                <li>✅ Generate ISO 20022 compliant output</li>" +
-                "            </ul>" +
-                "            <p style='text-align: center;'>" +
-                "                <a href='%s' class='button'>Verify Your Email</a>" +
-                "            </p>" +
-                "            <p style='font-size: 14px; color: #666;'>" +
-                "                Or copy and paste this link into your browser:<br>" +
-                "                <span style='word-break: break-all;'>%s</span>" +
-                "            </p>" +
-                "            <p style='font-size: 12px; color: #999;'>" +
-                "                This link will expire in 30 minutes. If you didn't create an account, please ignore this email." +
-                "            </p>" +
-                "        </div>" +
-                "        <div class='footer'>" +
-                "            <p>Best regards,<br>The SWIFT Converter Pro Team</p>" +
-                "            <p style='font-size: 11px; color: #999;'>" +
-                "                This is an automated message. Please do not reply to this email." +
-                "            </p>" +
+                "    <div class='wrapper'>" +
+                "        <div class='container'>" +
+                "            <div class='header'>" +
+                "                <h1>SWIFT Converter Pro</h1>" +
+                "            </div>" +
+                "            <div class='content'>" +
+                "                <h2>Confirm your email address</h2>" +
+                "                <p>Thanks for joining SWIFT Converter Pro. We're excited to help you streamline your MT to MX conversion workflow.</p>" +
+                "                <div class='perks'>" +
+                "                    <div class='perks-title'>Unlock your account to get:</div>" +
+                "                    <div class='perk-item'>• 5 Welcome Credits (instantly)</div>" +
+                "                    <div class='perk-item'>• Access to MT103, 202, and 940 converters</div>" +
+                "                    <div class='perk-item'>• ISO 20022 compliant MX generation</div>" +
+                "                </div>" +
+                "                <div class='button-wrapper'>" +
+                "                    <a href='%s' class='button'>Verify My Email</a>" +
+                "                </div>" +
+                "                <p class='expiry'>This link expires in 30 minutes for security reasons. If you didn't create an account, you can safely ignore this email.</p>" +
+                "            </div>" +
+                "            <div class='footer'>" +
+                "                <p>&copy; 2026 SWIFT Converter Pro. All rights reserved.</p>" +
+                "                <p>Built for professionals by MtSaas Team</p>" +
+                "            </div>" +
                 "        </div>" +
                 "    </div>" +
                 "</body>" +
                 "</html>",
-                verificationUrl, verificationUrl
+                verificationUrl
             );
 
-            sendEmail(userEmail, "Verify your SWIFT Converter Pro account", htmlContent);
+            sendEmail(userEmail, "Confirm your account - SWIFT Converter Pro", htmlContent);
 
         } catch (Exception e) {
             log.error("❌ Unexpected error sending verification email", e);
