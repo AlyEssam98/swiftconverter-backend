@@ -10,6 +10,7 @@ import com.mtsaas.backend.infrastructure.repository.EmailVerificationTokenReposi
 import com.mtsaas.backend.infrastructure.repository.UserRepository;
 import com.mtsaas.backend.infrastructure.security.JwtService;
 import com.mtsaas.backend.infrastructure.security.RateLimitingService;
+import com.mtsaas.backend.infrastructure.security.RefreshTokenService;
 import com.mtsaas.backend.infrastructure.security.TokenGeneratorService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -39,6 +40,7 @@ public class AuthService {
         private final TokenGeneratorService tokenGeneratorService;
         private final EmailService emailService;
         private final RateLimitingService rateLimitingService;
+        private final RefreshTokenService refreshTokenService;
 
         @Value("${app.frontend.url:http://localhost:3000}")
         private String frontendUrl;
@@ -96,10 +98,10 @@ public class AuthService {
                 log.info("✓ User registration completed (pending verification): {}", email);
                 
                 // Don't return token since they need to verify
-                return new AuthDto.AuthenticationResponse(null, "Please check your email to verify your account.");
+                return new AuthDto.AuthenticationResponse(null, null, "Please check your email to verify your account.");
         }
 
-        public AuthDto.AuthenticationResponse authenticate(AuthDto.AuthenticationRequest request) {
+        public AuthSession authenticate(AuthDto.AuthenticationRequest request) {
                 authenticationManager.authenticate(
                                 new UsernamePasswordAuthenticationToken(
                                                 request.getEmail(),
@@ -110,13 +112,12 @@ public class AuthService {
                 if (!user.isEmailVerified()) {
                         throw new DisabledException("Please verify your email to log in.");
                 }
-                                
-                var jwtToken = jwtService.generateToken(new SecurityUser(user));
-                return new AuthDto.AuthenticationResponse(jwtToken, "");
+
+                return createSessionForUser(user);
         }
         
         @Transactional
-        public AuthDto.AuthenticationResponse verifyEmail(String rawToken) {
+        public AuthSession verifyEmail(String rawToken) {
             String hashedToken = tokenGeneratorService.hashToken(rawToken);
             
             EmailVerificationToken token = tokenRepository.findByTokenHash(hashedToken)
@@ -138,8 +139,50 @@ public class AuthService {
             log.info("✓ User email verified: {}", user.getEmail());
             
             // Generate token to log them in automatically
+            AuthSession session = createSessionForUser(user);
+            session.getResponse().setMessage("Email verified successfully!");
+            return session;
+        }
+
+        @Transactional
+        public AuthSession refresh(String rawRefreshToken) {
+            var existingToken = refreshTokenService.findValidToken(rawRefreshToken)
+                    .orElseThrow(() -> new IllegalArgumentException("Invalid or expired refresh token."));
+
+            refreshTokenService.revoke(existingToken);
+            return createSessionForUser(existingToken.getUser());
+        }
+
+        @Transactional
+        public void logout(String rawRefreshToken) {
+            if (rawRefreshToken != null && !rawRefreshToken.isBlank()) {
+                refreshTokenService.revokeByRawToken(rawRefreshToken);
+            }
+        }
+
+        @Transactional
+        public AuthSession createSessionForUser(User user) {
             var jwtToken = jwtService.generateToken(new SecurityUser(user));
-            return new AuthDto.AuthenticationResponse(jwtToken, "Email verified successfully!");
+            String refreshToken = refreshTokenService.issueToken(user);
+            return new AuthSession(new AuthDto.AuthenticationResponse(jwtToken, null, null), refreshToken);
+        }
+
+        public static class AuthSession {
+            private final AuthDto.AuthenticationResponse response;
+            private final String refreshToken;
+
+            public AuthSession(AuthDto.AuthenticationResponse response, String refreshToken) {
+                this.response = response;
+                this.refreshToken = refreshToken;
+            }
+
+            public AuthDto.AuthenticationResponse getResponse() {
+                return response;
+            }
+
+            public String getRefreshToken() {
+                return refreshToken;
+            }
         }
         
         @Transactional

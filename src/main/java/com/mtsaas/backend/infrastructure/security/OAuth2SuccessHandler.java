@@ -1,6 +1,6 @@
 package com.mtsaas.backend.infrastructure.security;
 
-import com.mtsaas.backend.application.service.SecurityUser;
+import com.mtsaas.backend.application.service.AuthService;
 import com.mtsaas.backend.domain.Role;
 import com.mtsaas.backend.domain.User;
 import com.mtsaas.backend.infrastructure.repository.UserRepository;
@@ -11,6 +11,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.dao.DataIntegrityViolationException;
+import org.springframework.http.ResponseCookie;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.oauth2.core.user.OAuth2User;
 import org.springframework.security.web.authentication.SimpleUrlAuthenticationSuccessHandler;
@@ -26,7 +27,19 @@ import java.util.Optional;
 public class OAuth2SuccessHandler extends SimpleUrlAuthenticationSuccessHandler {
 
     private final UserRepository userRepository;
-    private final JwtService jwtService;
+    private final AuthService authService;
+
+    @Value("${app.jwt.refresh-token-expiration-ms:1209600000}")
+    private long refreshTokenExpirationMs;
+
+    @Value("${app.jwt.refresh-cookie-name:refresh_token}")
+    private String refreshCookieName;
+
+    @Value("${app.jwt.refresh-cookie-secure:false}")
+    private boolean refreshCookieSecure;
+
+    @Value("${app.jwt.refresh-cookie-same-site:Lax}")
+    private String refreshCookieSameSite;
 
     @Value("${app.frontend.url:http://localhost:3000}")
     private String frontendUrl;
@@ -81,8 +94,18 @@ public class OAuth2SuccessHandler extends SimpleUrlAuthenticationSuccessHandler 
 
             }
 
+            AuthService.AuthSession authSession = authService.createSessionForUser(user);
+            response.addHeader("Set-Cookie", ResponseCookie.from(refreshCookieName, authSession.getRefreshToken())
+                    .httpOnly(true)
+                    .secure(refreshCookieSecure)
+                    .sameSite(refreshCookieSameSite)
+                    .path("/api/v1/auth")
+                    .maxAge(refreshTokenExpirationMs / 1000)
+                    .build()
+                    .toString());
+
             // Generate JWT token and redirect
-            String token = jwtService.generateToken(new SecurityUser(user));
+            String token = authSession.getResponse().getAccessToken();
             String redirectUrl = frontendUrl + "/auth/callback?token=" + token;
             getRedirectStrategy().sendRedirect(request, response, redirectUrl);
             

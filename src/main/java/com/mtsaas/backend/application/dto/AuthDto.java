@@ -63,6 +63,7 @@ public class AuthDto {
     public static class AuthenticationResponse {
         private String accessToken;
         private String refreshToken;
+        private String message;
 
         public AuthenticationResponse() {
         }
@@ -70,6 +71,12 @@ public class AuthDto {
         public AuthenticationResponse(String accessToken, String refreshToken) {
             this.accessToken = accessToken;
             this.refreshToken = refreshToken;
+        }
+
+        public AuthenticationResponse(String accessToken, String refreshToken, String message) {
+            this.accessToken = accessToken;
+            this.refreshToken = refreshToken;
+            this.message = message;
         }
 
         public String getAccessToken() {
@@ -86,6 +93,14 @@ public class AuthDto {
 
         public void setRefreshToken(String refreshToken) {
             this.refreshToken = refreshToken;
+        }
+
+        public String getMessage() {
+            return message;
+        }
+
+        public void setMessage(String message) {
+            this.message = message;
         }
     }
 
