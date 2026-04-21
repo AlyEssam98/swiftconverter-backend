@@ -83,13 +83,7 @@ public class Pacs008Generator extends BaseMxGenerator {
         xml.append("    <To>\n");
         xml.append("      <FIId>\n");
         xml.append("        <FinInstnId>\n");
-        String receiverBic = mtMessage.getReceiver();
-        if (receiverBic == null)
-            receiverBic = tags.get("57A"); // For MT103, 57 is often the receiver's bank
-        if (receiverBic == null)
-            receiverBic = tags.get("58A"); // For MT202
-        if (receiverBic == null)
-            receiverBic = "UNDEFINED";
+        String receiverBic = resolveReceiverBic(mtMessage, tags);
         xml.append("          <BICFI>").append(escapeXml(sanitizeBic(receiverBic))).append("</BICFI>\n");
         xml.append("        </FinInstnId>\n");
         xml.append("      </FIId>\n");
@@ -216,7 +210,7 @@ public class Pacs008Generator extends BaseMxGenerator {
         } else {
             xml.append("        <InstdAgt>\n");
             xml.append("          <FinInstnId>\n");
-            xml.append("            <BICFI>").append(escapeXml(sanitizeBic(mtMessage.getReceiver())))
+            xml.append("            <BICFI>").append(escapeXml(sanitizeBic(resolveReceiverBic(mtMessage, tags))))
                     .append("</BICFI>\n");
             xml.append("          </FinInstnId>\n");
             xml.append("        </InstdAgt>\n");
@@ -264,7 +258,7 @@ public class Pacs008Generator extends BaseMxGenerator {
         if (!hasCdtrAgt) {
             xml.append("        <CdtrAgt>\n");
             xml.append("          <FinInstnId>\n");
-            xml.append("            <BICFI>").append(escapeXml(sanitizeBic(mtMessage.getReceiver())))
+            xml.append("            <BICFI>").append(escapeXml(sanitizeBic(resolveReceiverBic(mtMessage, tags))))
                     .append("</BICFI>\n");
             xml.append("          </FinInstnId>\n");
             xml.append("        </CdtrAgt>\n");
@@ -343,13 +337,28 @@ public class Pacs008Generator extends BaseMxGenerator {
         if (tag71A == null || tag71A.isBlank())
             return "SHAR";
         String s = tag71A.trim().toUpperCase();
-        switch (s) {
-            case "OUR":
-                return "DEBT";
-            case "BEN":
-                return "CRED";
-            default:
-                return "SHAR";
+        if (s.startsWith("OUR")) {
+            return "DEBT";
         }
+        if (s.startsWith("BEN")) {
+            return "CRED";
+        }
+        if (s.startsWith("SHA") || s.startsWith("SHAR")) {
+            return "SHAR";
+        }
+        return "SHAR";
+    }
+
+    private String resolveReceiverBic(MtMessage mtMessage, Map<String, String> tags) {
+        if (mtMessage.getReceiver() != null && !mtMessage.getReceiver().isBlank()) {
+            return mtMessage.getReceiver();
+        }
+        if (tags.get("57A") != null && !tags.get("57A").isBlank()) {
+            return tags.get("57A");
+        }
+        if (tags.get("58A") != null && !tags.get("58A").isBlank()) {
+            return tags.get("58A");
+        }
+        return "UNDEFINED";
     }
 }

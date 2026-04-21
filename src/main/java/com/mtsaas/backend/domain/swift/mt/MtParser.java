@@ -21,6 +21,9 @@ public class MtParser {
 
     // Extract Block 2 (Receiver BIC): {2:O1030000000000BANKBEBBAXXX...}
     private static final Pattern BLOCK_2_RECV_PATTERN = Pattern.compile("\\{2:[OI]\\d{3}\\d{10}([A-Z0-9]{12})");
+    // Fallback for short/non-standard Block 2 forms like: {2:1103PNBPUS3NXNYCN}
+    private static final Pattern BLOCK_2_CONTENT_PATTERN = Pattern.compile("\\{2:([^}]*)\\}");
+    private static final Pattern BIC_11_PATTERN = Pattern.compile("[A-Z]{6}[A-Z0-9]{2}[A-Z0-9]{3}");
 
     // Extract Block 3 (User Header) fields: {3:{121:uuid}...}
     // Updated regex to handle nested braces correctly
@@ -78,6 +81,8 @@ public class MtParser {
                 fullBic = fullBic.substring(0, 8) + fullBic.substring(9);
             }
             message.setReceiver(fullBic);
+        } else {
+            extractReceiverFromFlexibleBlock2(content).ifPresent(message::setReceiver);
         }
 
         // --- Extract Block 3 (User Header) ---
@@ -117,7 +122,7 @@ public class MtParser {
         while (tokenMatcher.find()) {
             if (lastTag != null) {
                 String value = block4.substring(lastMatchEnd, tokenMatcher.start()).trim();
-                tags.put(lastTag, value);
+                tags.put(lastTag, cleanTagValue(lastTag, value));
             }
             lastTag = tokenMatcher.group(1);
             lastMatchEnd = tokenMatcher.end();
@@ -126,7 +131,7 @@ public class MtParser {
         // Add the last tag
         if (lastTag != null) {
             String value = block4.substring(lastMatchEnd).trim();
-            tags.put(lastTag, value);
+            tags.put(lastTag, cleanTagValue(lastTag, value));
         }
 
         message.setTags(tags);
@@ -141,6 +146,68 @@ public class MtParser {
         }
 
         return message;
+    }
+
+    private java.util.Optional<String> extractReceiverFromFlexibleBlock2(String content) {
+        Matcher block2Matcher = BLOCK_2_CONTENT_PATTERN.matcher(content);
+        if (!block2Matcher.find()) {
+            return java.util.Optional.empty();
+        }
+
+        String block2Content = block2Matcher.group(1).toUpperCase();
+        Matcher bicMatcher = BIC_11_PATTERN.matcher(block2Content);
+        if (!bicMatcher.find()) {
+            return java.util.Optional.empty();
+        }
+
+        String bic = bicMatcher.group();
+        if (bic.length() == 11) {
+            return java.util.Optional.of(bic);
+        }
+        return java.util.Optional.empty();
+    }
+
+    private String cleanTagValue(String tag, String rawValue) {
+        if (rawValue == null) {
+            return null;
+        }
+        String value = rawValue;
+
+        int structuralBoundary = findFirstBoundary(value, "{5:", "-}", "<?xml", "<RequestPayload", "{1:", "{2:", "{3:", "{4:");
+        if (structuralBoundary >= 0) {
+            value = value.substring(0, structuralBoundary);
+        }
+
+        value = value.trim();
+        if ("71A".equals(tag)) {
+            value = normalizeChargeTag(value);
+        }
+        return value;
+    }
+
+    private int findFirstBoundary(String value, String... boundaries) {
+        int boundaryIndex = -1;
+        for (String boundary : boundaries) {
+            int idx = value.indexOf(boundary);
+            if (idx >= 0 && (boundaryIndex < 0 || idx < boundaryIndex)) {
+                boundaryIndex = idx;
+            }
+        }
+        return boundaryIndex;
+    }
+
+    private String normalizeChargeTag(String value) {
+        String normalized = value == null ? "" : value.trim().toUpperCase();
+        if (normalized.startsWith("OUR")) {
+            return "OUR";
+        }
+        if (normalized.startsWith("BEN")) {
+            return "BEN";
+        }
+        if (normalized.startsWith("SHA") || normalized.startsWith("SHAR")) {
+            return "SHA";
+        }
+        return normalized;
     }
 
     private void validateMt202(Map<String, String> tags) {

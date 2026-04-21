@@ -8,6 +8,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import java.util.*;
 
 public abstract class BaseMxGenerator implements MxGenerator {
+    private static final Set<String> ISO_COUNTRY_CODES = new HashSet<>(Arrays.asList(Locale.getISOCountries()));
 
     @Setter(onMethod_ = @Autowired)
     private XmlValidator xmlValidator;
@@ -409,19 +410,16 @@ public abstract class BaseMxGenerator implements MxGenerator {
             addressLines.add(lines.get(i));
         }
 
-        // Check for country in the last line
+        // Check for country in the last line using token-aware parsing.
         if (!addressLines.isEmpty()) {
             String lastLine = addressLines.get(addressLines.size() - 1);
-            if (lastLine.length() >= 2) {
-                String candidate = lastLine.substring(lastLine.length() - 2);
-                if (candidate.matches("[A-Z]{2}")) {
-                    country = candidate;
-                    String remainder = lastLine.substring(0, lastLine.length() - 2).trim();
-                    if (remainder.isEmpty()) {
-                        addressLines.remove(addressLines.size() - 1);
-                    } else {
-                        addressLines.set(addressLines.size() - 1, remainder);
-                    }
+            CountryLineParse parsedCountryLine = extractCountryFromAddressLine(lastLine);
+            if (parsedCountryLine.countryCode() != null) {
+                country = parsedCountryLine.countryCode();
+                if (parsedCountryLine.remainingLine().isEmpty()) {
+                    addressLines.remove(addressLines.size() - 1);
+                } else {
+                    addressLines.set(addressLines.size() - 1, parsedCountryLine.remainingLine());
                 }
             }
         }
@@ -536,5 +534,38 @@ public abstract class BaseMxGenerator implements MxGenerator {
         if (candidate == null || candidate.isBlank())
             return "UNKNOWN";
         return candidate.replaceAll("[^\\p{L}\\p{N}\\.\\-\\s]", "").trim();
+    }
+
+    private CountryLineParse extractCountryFromAddressLine(String line) {
+        if (line == null || line.isBlank()) {
+            return new CountryLineParse(null, line == null ? "" : line);
+        }
+
+        String cleaned = line.trim().replaceAll("\\s+", " ");
+        String[] tokens = cleaned.split(" ");
+        if (tokens.length < 2) {
+            return new CountryLineParse(null, cleaned);
+        }
+
+        String firstToken = tokens[0].toUpperCase(Locale.ROOT);
+        if (isValidCountryCode(firstToken)) {
+            String remainder = cleaned.substring(tokens[0].length()).trim();
+            return new CountryLineParse(firstToken, remainder);
+        }
+
+        String lastToken = tokens[tokens.length - 1].toUpperCase(Locale.ROOT);
+        if (isValidCountryCode(lastToken)) {
+            String remainder = cleaned.substring(0, cleaned.length() - tokens[tokens.length - 1].length()).trim();
+            return new CountryLineParse(lastToken, remainder);
+        }
+
+        return new CountryLineParse(null, cleaned);
+    }
+
+    private boolean isValidCountryCode(String code) {
+        return code != null && code.length() == 2 && ISO_COUNTRY_CODES.contains(code);
+    }
+
+    private record CountryLineParse(String countryCode, String remainingLine) {
     }
 }
