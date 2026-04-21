@@ -304,26 +304,4 @@ public class EmailService {
         }
     }
 
-    /**
-     * Diagnostic method to test SendGrid connectivity
-     */
-    public String testEmailConnectivity() {
-        try {
-            log.info("Testing SendGrid connectivity...");
-            Request request = new Request();
-            request.setMethod(Method.GET);
-            request.setEndpoint("user/profile");
-            Response response = sendGrid.api(request);
-            
-            if (response.getStatusCode() == 200) {
-                return "Connection successful to SendGrid API. Status: " + response.getStatusCode();
-            } else {
-                return "SendGrid API returned status: " + response.getStatusCode() + ". Body: " + response.getBody();
-            }
-        } catch (Exception e) {
-            log.error("SendGrid Test failed");
-            log.error("Exception Details: ", e);
-            return "SendGrid Test failed: " + e.getMessage();
-        }
-    }
 }

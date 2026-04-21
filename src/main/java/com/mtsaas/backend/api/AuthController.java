@@ -59,34 +59,4 @@ public class AuthController {
         return ResponseEntity.ok().build();
     }
 
-    // Diagnostic endpoints for email testing
-    @GetMapping("/test-email")
-    public ResponseEntity<Map<String, String>> testEmail() {
-        String result = emailService.testEmailConnectivity();
-        return ResponseEntity.ok(Map.of("result", result));
-    }
-
-    @GetMapping("/email-config")
-    public ResponseEntity<Map<String, Object>> testEmailConfig() {
-        return ResponseEntity.ok(Map.of(
-            "status", "Email service initialized",
-            "message", "Email configuration loaded successfully"
-        ));
-    }
-
-    @GetMapping("/send-test-email")
-    public ResponseEntity<Map<String, String>> sendTestEmail(@RequestParam String email) {
-        try {
-            emailService.sendVerificationEmail(email, "https://swiftconverter.com/test");
-            return ResponseEntity.ok(Map.of(
-                "status", "Test email sent",
-                "to", email
-            ));
-        } catch (Exception e) {
-            return ResponseEntity.internalServerError().body(Map.of(
-                "status", "Error",
-                "error", e.getMessage()
-            ));
-        }
-    }
 }

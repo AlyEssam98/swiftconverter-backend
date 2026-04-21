@@ -82,7 +82,8 @@ public class AuthService {
                         tokenRepository.save(verificationToken);
                         
                         // Send email
-                        String verificationUrl = frontendUrl + "/auth/verify?token=" + rawToken;
+                        String baseUrl = frontendUrl.endsWith("/") ? frontendUrl.substring(0, frontendUrl.length() - 1) : frontendUrl;
+                        String verificationUrl = baseUrl + "/auth/verify?token=" + rawToken;
                         emailService.sendVerificationEmail(email, verificationUrl);
                         log.info("✓ Verification email sent to: {}", email);
                         
