@@ -24,7 +24,8 @@ public class HealthController {
         try {
             userRepository.count();
         } catch (Exception e) {
-            return ResponseEntity.status(503).body(Map.of("status", "DOWN", "error", e.getMessage()));
+            String errorMessage = e.getMessage() != null ? e.getMessage() : e.getClass().getSimpleName();
+            return ResponseEntity.status(503).body(Map.of("status", "DOWN", "error", errorMessage));
         }
         return ResponseEntity.ok(Map.of("status", "UP"));
     }
