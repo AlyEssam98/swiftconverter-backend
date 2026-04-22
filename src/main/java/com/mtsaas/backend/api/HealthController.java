@@ -3,7 +3,7 @@ package com.mtsaas.backend.api;
 import com.mtsaas.backend.infrastructure.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 
-import org.hibernate.validator.internal.util.stereotypes.Lazy;
+import org.springframework.context.annotation.Lazy;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
