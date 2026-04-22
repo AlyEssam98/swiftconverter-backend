@@ -20,13 +20,15 @@ public class HealthController {
     @GetMapping
     @SuppressWarnings("unused")
     public ResponseEntity<Map<String, String>> health() {
-        // Simple DB check to wake up database if sleeping
+        // Temporarily commented out DB check to isolate 500 error cause
+        /*
         try {
             userRepository.count();
         } catch (Exception e) {
             String errorMessage = e.getMessage() != null ? e.getMessage() : e.getClass().getSimpleName();
             return ResponseEntity.status(503).body(Map.of("status", "DOWN", "error", errorMessage));
         }
-        return ResponseEntity.ok(Map.of("status", "UP"));
+        */
+        return ResponseEntity.ok(Map.of("status", "UP", "note", "Database check temporarily disabled for diagnostics"));
     }
 }
