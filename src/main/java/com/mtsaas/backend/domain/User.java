@@ -48,7 +48,7 @@ public class User {
 
     private LocalDateTime emailVerifiedAt;
 
-    private String stripeCustomerId;
+    private String lemonSqueezyCustomerId;
 
     private String displayName;
     

@@ -35,8 +35,17 @@ public class CreditService {
         private final UserRepository userRepository;
         private final CreditUsageRepository creditUsageRepository;
         private final CreditPurchaseRepository creditPurchaseRepository;
-        private final StripeService stripeService;
+        private final LemonSqueezyService lemonSqueezyService;
         private final EmailService emailService;
+
+        @org.springframework.beans.factory.annotation.Value("${lemon-squeezy.variant.starter:placeholder}")
+        private String variantStarter;
+
+        @org.springframework.beans.factory.annotation.Value("${lemon-squeezy.variant.professional:placeholder}")
+        private String variantProfessional;
+
+        @org.springframework.beans.factory.annotation.Value("${lemon-squeezy.variant.enterprise:placeholder}")
+        private String variantEnterprise;
 
 
         @Transactional
@@ -150,12 +159,10 @@ public class CreditService {
                                 .orElseThrow(() -> new RuntimeException("Invalid package: " + packageId));
 
                 try {
-                        long amountCents = selectedPackage.getPrice().multiply(new java.math.BigDecimal(100))
-                                        .longValue();
-                        String checkoutUrl = stripeService.createCheckoutSession(
-                                        user, selectedPackage.getName(), selectedPackage.getCredits(), amountCents);
+                        String variantId = determineVariantId(packageId);
+                        String checkoutUrl = lemonSqueezyService.createCheckoutSession(user, variantId, selectedPackage.getCredits());
 
-                        log.info("Created checkout session for user: {}, package: {}", email, packageId);
+                        log.info("Created Lemon Squeezy checkout session for user: {}, package: {}, variant: {}", email, packageId, variantId);
 
                         return PurchaseCreditsResponse.builder()
                                         .success(true)
@@ -163,8 +170,17 @@ public class CreditService {
                                         .checkoutUrl(checkoutUrl)
                                         .build();
                 } catch (Exception e) {
-                        log.error("Failed to create Stripe session: {}", e.getMessage());
+                        log.error("Failed to create Lemon Squeezy session: {}", e.getMessage());
                         throw new RuntimeException("Payment gateway initialization failed");
+                }
+        }
+
+        private String determineVariantId(String packageId) {
+                switch (packageId) {
+                        case "starter": return variantStarter;
+                        case "professional": return variantProfessional;
+                        case "enterprise": return variantEnterprise;
+                        default: throw new RuntimeException("Unknown package ID: " + packageId);
                 }
         }
 
