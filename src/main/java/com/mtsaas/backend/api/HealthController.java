@@ -15,6 +15,7 @@ import java.util.Map;
 @SuppressWarnings("unused")
 public class HealthController {
 
+    @Lazy
     private final UserRepository userRepository;
 
     @GetMapping
