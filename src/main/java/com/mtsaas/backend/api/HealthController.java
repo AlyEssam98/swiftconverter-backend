@@ -2,6 +2,8 @@ package com.mtsaas.backend.api;
 
 import com.mtsaas.backend.infrastructure.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
+
+import org.hibernate.validator.internal.util.stereotypes.Lazy;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -23,13 +25,15 @@ public class HealthController {
     public ResponseEntity<Map<String, String>> health() {
         // Temporarily commented out DB check to isolate 500 error cause
         /*
-        try {
-            userRepository.count();
-        } catch (Exception e) {
-            String errorMessage = e.getMessage() != null ? e.getMessage() : e.getClass().getSimpleName();
-            return ResponseEntity.status(503).body(Map.of("status", "DOWN", "error", errorMessage));
-        }
-        */
+         * try {
+         * userRepository.count();
+         * } catch (Exception e) {
+         * String errorMessage = e.getMessage() != null ? e.getMessage() :
+         * e.getClass().getSimpleName();
+         * return ResponseEntity.status(503).body(Map.of("status", "DOWN", "error",
+         * errorMessage));
+         * }
+         */
         return ResponseEntity.ok(Map.of("status", "UP", "note", "Database check temporarily disabled for diagnostics"));
     }
 }
