@@ -1,5 +1,8 @@
 package com.mtsaas.backend.application.service;
 
+import com.mtsaas.backend.application.exception.InvalidPurchaseRequestException;
+import com.mtsaas.backend.application.exception.PaymentConfigurationException;
+import com.mtsaas.backend.application.exception.PaymentGatewayUnavailableException;
 import com.mtsaas.backend.domain.User;
 import com.mtsaas.backend.domain.CreditUsage;
 import com.mtsaas.backend.domain.CreditPurchase;
@@ -16,6 +19,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import jakarta.annotation.PostConstruct;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
@@ -23,6 +27,7 @@ import java.time.format.DateTimeFormatter;
 import java.time.temporal.ChronoUnit;
 import java.time.temporal.TemporalAdjusters;
 import java.util.Arrays;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
 import java.util.stream.Collectors;
@@ -47,6 +52,25 @@ public class CreditService {
         @org.springframework.beans.factory.annotation.Value("${lemon-squeezy.variant.enterprise:placeholder}")
         private String variantEnterprise;
 
+
+        @PostConstruct
+        public void validatePaymentVariantConfig() {
+                List<String> missingVariantConfig = new ArrayList<>();
+
+                if (variantStarter == null || variantStarter.isBlank() || variantStarter.contains("placeholder")) {
+                        missingVariantConfig.add("LEMON_SQUEEZY_VARIANT_STARTER");
+                }
+                if (variantProfessional == null || variantProfessional.isBlank() || variantProfessional.contains("placeholder")) {
+                        missingVariantConfig.add("LEMON_SQUEEZY_VARIANT_PRO");
+                }
+                if (variantEnterprise == null || variantEnterprise.isBlank() || variantEnterprise.contains("placeholder")) {
+                        missingVariantConfig.add("LEMON_SQUEEZY_VARIANT_ENTERPRISE");
+                }
+
+                if (!missingVariantConfig.isEmpty()) {
+                        log.warn("Lemon Squeezy variant configuration missing fields: {}", String.join(", ", missingVariantConfig));
+                }
+        }
 
         @Transactional
         public CreditBalanceResponse getUserCreditBalance(String email) {
@@ -153,10 +177,14 @@ public class CreditService {
                 User user = userRepository.findByEmail(email)
                                 .orElseThrow(() -> new RuntimeException("User not found: " + email));
 
+                if (packageId == null || packageId.isBlank()) {
+                        throw new InvalidPurchaseRequestException("Package ID is required");
+                }
+
                 CreditPackageResponse selectedPackage = getAvailablePackages().stream()
                                 .filter(pkg -> pkg.getId().equals(packageId))
                                 .findFirst()
-                                .orElseThrow(() -> new RuntimeException("Invalid package: " + packageId));
+                                .orElseThrow(() -> new InvalidPurchaseRequestException("Invalid package: " + packageId));
 
                 try {
                         String variantId = determineVariantId(packageId);
@@ -169,9 +197,12 @@ public class CreditService {
                                         .message("Redirecting to checkout...")
                                         .checkoutUrl(checkoutUrl)
                                         .build();
+                } catch (InvalidPurchaseRequestException | PaymentConfigurationException | PaymentGatewayUnavailableException e) {
+                        throw e;
                 } catch (Exception e) {
-                        log.error("Failed to create Lemon Squeezy session: {}", e.getMessage());
-                        throw new RuntimeException("Payment gateway initialization failed");
+                        log.error("Unexpected error creating Lemon Squeezy checkout for user {} and package {}",
+                                email, packageId, e);
+                        throw new PaymentGatewayUnavailableException("Payment gateway initialization failed", e);
                 }
         }
 
@@ -180,7 +211,7 @@ public class CreditService {
                         case "starter": return variantStarter;
                         case "professional": return variantProfessional;
                         case "enterprise": return variantEnterprise;
-                        default: throw new RuntimeException("Unknown package ID: " + packageId);
+                        default: throw new InvalidPurchaseRequestException("Unknown package ID: " + packageId);
                 }
         }
 

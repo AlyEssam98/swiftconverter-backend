@@ -1,5 +1,8 @@
 package com.mtsaas.backend.api;
 
+import com.mtsaas.backend.application.exception.InvalidPurchaseRequestException;
+import com.mtsaas.backend.application.exception.PaymentConfigurationException;
+import com.mtsaas.backend.application.exception.PaymentGatewayUnavailableException;
 import com.mtsaas.backend.application.service.CreditService;
 import com.mtsaas.backend.dto.CreditBalanceResponse;
 import com.mtsaas.backend.dto.CreditPackageResponse;
@@ -49,22 +52,25 @@ public class CreditsController {
             PurchaseCreditsResponse response = creditService.purchaseCredits(
                     userDetails.getUsername(), request.getPackageId());
             return ResponseEntity.ok(response);
-        } catch (RuntimeException e) {
-            log.error("Purchase failed: {}", e.getMessage());
-
-            // Handle payment system not configured
-            if (e.getMessage().contains("Payment system is not configured") ||
-                    e.getMessage().contains("Payment gateway initialization failed")) {
-                return ResponseEntity.status(HttpStatus.SERVICE_UNAVAILABLE)
-                        .body(Map.of(
-                                "error", "Payment system temporarily unavailable",
-                                "message",
-                                "We're currently unable to process payments. Please try again later or contact support."));
-            }
-
-            // Handle other errors
+        } catch (InvalidPurchaseRequestException e) {
+            log.warn("Invalid purchase request: {}", e.getMessage());
             return ResponseEntity.status(HttpStatus.BAD_REQUEST)
-                    .body(Map.of("error", e.getMessage()));
+                    .body(Map.of(
+                            "error", "Invalid purchase request",
+                            "message", e.getMessage()));
+        } catch (PaymentConfigurationException | PaymentGatewayUnavailableException e) {
+            log.error("Payment gateway unavailable for purchase request", e);
+            return ResponseEntity.status(HttpStatus.SERVICE_UNAVAILABLE)
+                    .body(Map.of(
+                            "error", "Payment system temporarily unavailable",
+                            "message",
+                            "We're currently unable to process payments. Please try again later or contact support."));
+        } catch (RuntimeException e) {
+            log.error("Unexpected purchase failure", e);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(Map.of(
+                            "error", "Purchase request failed",
+                            "message", "Unexpected error while processing purchase request."));
         }
     }
 

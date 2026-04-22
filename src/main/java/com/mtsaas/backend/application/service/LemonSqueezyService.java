@@ -1,5 +1,7 @@
 package com.mtsaas.backend.application.service;
 
+import com.mtsaas.backend.application.exception.PaymentConfigurationException;
+import com.mtsaas.backend.application.exception.PaymentGatewayUnavailableException;
 import com.mtsaas.backend.domain.User;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
@@ -8,10 +10,13 @@ import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpMethod;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
+import org.springframework.web.client.RestClientResponseException;
 import org.springframework.web.client.RestTemplate;
 import jakarta.annotation.PostConstruct;
 
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 @Service
@@ -32,17 +37,25 @@ public class LemonSqueezyService {
 
     @PostConstruct
     public void init() {
-        if (apiKey == null || apiKey.contains("placeholder") || storeId == null || storeId.contains("placeholder")) {
-            log.warn("⚠️  Lemon Squeezy API key or Store ID not configured. Payment functionality will be disabled.");
+        List<String> missingConfig = getMissingConfigFields();
+        if (!missingConfig.isEmpty()) {
+            log.warn("Lemon Squeezy configuration missing fields: {}. Payment functionality will be disabled.",
+                    String.join(", ", missingConfig));
         } else {
             log.info("✅ Lemon Squeezy initialized successfully");
         }
     }
 
     public String createCheckoutSession(User user, String variantId, long credits) {
-        if (apiKey == null || apiKey.contains("placeholder")) {
-            log.error("Attempted to create checkout session without valid Lemon Squeezy configuration");
-            throw new RuntimeException("Payment system is not configured. Please contact support.");
+        if (apiKey == null || apiKey.contains("placeholder") ||
+                storeId == null || storeId.contains("placeholder")) {
+            log.error("Attempted checkout with invalid Lemon Squeezy configuration");
+            throw new PaymentConfigurationException("Payment system is not configured. Please contact support.");
+        }
+
+        if (variantId == null || variantId.isBlank() || variantId.contains("placeholder")) {
+            log.error("Attempted checkout with invalid variant ID configuration: {}", variantId);
+            throw new PaymentConfigurationException("Payment variant is not configured. Please contact support.");
         }
 
         HttpHeaders headers = new HttpHeaders();
@@ -98,9 +111,29 @@ public class LemonSqueezyService {
                 return (String) responseAttributes.get("url");
             }
             throw new RuntimeException("Invalid response format from Lemon Squeezy");
+        } catch (RestClientResponseException e) {
+            log.error("Lemon Squeezy checkout failed with status {} and body: {}",
+                    e.getStatusCode(), e.getResponseBodyAsString(), e);
+            throw new PaymentGatewayUnavailableException("Payment provider rejected checkout request", e);
+        } catch (PaymentConfigurationException e) {
+            throw e;
         } catch (Exception e) {
-            log.error("Failed to create Lemon Squeezy checkout session: {}", e.getMessage(), e);
-            throw new RuntimeException("Failed to initialize payment session");
+            log.error("Failed to create Lemon Squeezy checkout session", e);
+            throw new PaymentGatewayUnavailableException("Payment provider is currently unavailable", e);
         }
+    }
+
+    private List<String> getMissingConfigFields() {
+        List<String> missing = new ArrayList<>();
+        if (apiKey == null || apiKey.isBlank() || apiKey.contains("placeholder")) {
+            missing.add("LEMON_SQUEEZY_API_KEY");
+        }
+        if (storeId == null || storeId.isBlank() || storeId.contains("placeholder")) {
+            missing.add("LEMON_SQUEEZY_STORE_ID");
+        }
+        if (frontendUrl == null || frontendUrl.isBlank() || frontendUrl.contains("localhost")) {
+            missing.add("FRONTEND_URL");
+        }
+        return missing;
     }
 }
