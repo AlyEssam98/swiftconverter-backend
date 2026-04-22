@@ -382,20 +382,33 @@ public abstract class BaseMxGenerator implements MxGenerator {
         }
 
         // Step 2: Extract Account (if line starts with /)
-        int startLine = 0;
-        String firstLine = lines.get(0);
-        if (firstLine.startsWith("/")) {
-            // Check if there's a name on the same line: /ACCOUNT NAME
-            String remainder = firstLine.substring(1).trim();
-            int spaceIdx = remainder.indexOf(' ');
-            if (spaceIdx > 0) {
-                account = remainder.substring(0, spaceIdx).trim();
-                name = remainder.substring(spaceIdx).trim();
-            } else {
-                account = remainder;
-            }
-            startLine = 1;
+int startLine = 0;
+String firstLine = lines.get(0);
+if (firstLine.startsWith("/")) {
+    String remainder = firstLine.substring(1).trim();
+    
+    // Extract account: take leading alphanumeric characters (SWIFT accounts are typically numeric)
+    // Important: Don't use first space as delimiter since account can be directly concatenated with name
+    int accountEndIdx = 0;
+    while (accountEndIdx < remainder.length() && 
+           Character.isLetterOrDigit(remainder.charAt(accountEndIdx))) {
+        accountEndIdx++;
+    }
+    
+    if (accountEndIdx > 0) {
+        account = remainder.substring(0, accountEndIdx).trim();
+        String afterAccount = remainder.substring(accountEndIdx).trim();
+        
+        // If there's content after the account, it's the name (could be on same line)
+        if (!afterAccount.isEmpty()) {
+            name = afterAccount;
         }
+    } else {
+        // Fallback: if no alphanumeric found, treat entire remainder as account
+        account = remainder;
+    }
+    startLine = 1;
+}
 
         // Step 3: Extract Name (first non-account line, if name not already found)
         if (startLine < lines.size()) {
