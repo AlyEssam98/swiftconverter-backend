@@ -72,8 +72,10 @@ public class LemonSqueezyService {
         checkoutData.put("email", user.getEmail());
         checkoutData.put("custom", customData);
 
-        Map<String, Object> checkoutOptions = new HashMap<>();
-        checkoutOptions.put("redirect_url", frontendUrl + "/dashboard/credits/success?session_id={checkout_session_id}");
+        List<Map<String, Object>> checkoutOptions = new ArrayList<>();
+        Map<String, Object> option = new HashMap<>();
+        option.put("redirect_url", frontendUrl + "/dashboard/credits/success?session_id={checkout_session_id}");
+        checkoutOptions.add(option);
 
         Map<String, Object> attributes = new HashMap<>();
         attributes.put("checkout_data", checkoutData);
