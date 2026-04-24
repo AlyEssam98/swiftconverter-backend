@@ -102,16 +102,17 @@ public class LemonSqueezyService {
         Map<String, Object> payload = new HashMap<>();
         payload.put("data", data);
 
-        HttpEntity<Map<String, Object>> request = new HttpEntity<>(payload, headers);
-
         try {
             ObjectMapper mapper = new ObjectMapper();
-            String jsonPayload = mapper.writerWithDefaultPrettyPrinter().writeValueAsString(payload);
-            log.info("📤 Sending to Lemon Squeezy: {}", jsonPayload);
+            String jsonPayload = mapper.writeValueAsString(payload);
+            log.info("📤 DEBUG: Sending to Lemon Squeezy API:\n{}", mapper.writerWithDefaultPrettyPrinter().writeValueAsString(payload));
             
-            ResponseEntity<Map> response = restTemplate.exchange(API_URL, HttpMethod.POST, request, Map.class);
-            Map<String, Object> responseBody = response.getBody();
+            HttpEntity<String> request = new HttpEntity<>(jsonPayload, headers);
+            ResponseEntity<String> response = restTemplate.exchange(API_URL, HttpMethod.POST, request, String.class);
             
+            log.info("✅ DEBUG: Lemon Squeezy response: {}", response.getBody());
+            
+            Map<String, Object> responseBody = mapper.readValue(response.getBody(), Map.class);
             if (responseBody != null && responseBody.containsKey("data")) {
                 Map<String, Object> responseData = (Map<String, Object>) responseBody.get("data");
                 Map<String, Object> responseAttributes = (Map<String, Object>) responseData.get("attributes");
@@ -119,13 +120,13 @@ public class LemonSqueezyService {
             }
             throw new RuntimeException("Invalid response format from Lemon Squeezy");
         } catch (RestClientResponseException e) {
-            log.error("Lemon Squeezy checkout failed with status {} and body: {}",
+            log.error("❌ Lemon Squeezy checkout failed with status {} and body: {}",
                     e.getStatusCode(), e.getResponseBodyAsString(), e);
             throw new PaymentGatewayUnavailableException("Payment provider rejected checkout request", e);
         } catch (PaymentConfigurationException e) {
             throw e;
         } catch (Exception e) {
-            log.error("Failed to create Lemon Squeezy checkout session", e);
+            log.error("❌ Failed to create Lemon Squeezy checkout session", e);
             throw new PaymentGatewayUnavailableException("Payment provider is currently unavailable", e);
         }
     }
