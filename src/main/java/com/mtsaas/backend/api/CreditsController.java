@@ -18,8 +18,6 @@ import org.springframework.web.bind.annotation.*;
 import org.springframework.http.HttpStatus;
 import java.util.List;
 import java.util.Map;
-import java.util.HashMap;
-import java.time.LocalDateTime;
 
 @RestController
 @RequestMapping("/api/v1/credits")
@@ -82,33 +80,5 @@ public class CreditsController {
         log.info("Getting credit usage for user: {}", userDetails.getUsername());
         CreditUsageResponse response = creditService.getCreditUsage(userDetails.getUsername());
         return ResponseEntity.ok(response);
-    }
-
-    @GetMapping("/debug/config")
-    public ResponseEntity<Map<String, Object>> debugConfig() {
-        Map<String, Object> debug = new HashMap<>();
-        debug.put("timestamp", LocalDateTime.now().toString());
-        debug.put("service_status", "Backend is running");
-        debug.put("lemon_squeezy_configured", creditService.isLemonSqueezyConfigured());
-        debug.put("missing_configs", creditService.getMissingLemonSqueezyConfigs());
-        return ResponseEntity.ok(debug);
-    }
-
-    @GetMapping("/debug/lemon-test")
-    public ResponseEntity<Map<String, Object>> testLemonSqueezy() {
-        Map<String, Object> result = new HashMap<>();
-        try {
-            // Test API connectivity
-            result.put("api_test", "Attempting to test Lemon Squeezy API...");
-            // This will throw if configuration is missing
-            creditService.testLemonSqueezyConnection();
-            result.put("api_test", "SUCCESS - Lemon Squeezy API is accessible");
-            result.put("status", "connected");
-        } catch (Exception e) {
-            result.put("api_test", "FAILED - " + e.getMessage());
-            result.put("status", "failed");
-            result.put("error_type", e.getClass().getSimpleName());
-        }
-        return ResponseEntity.ok(result);
     }
 }
