@@ -1,5 +1,6 @@
 package com.mtsaas.backend.application.service;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.mtsaas.backend.application.exception.PaymentConfigurationException;
 import com.mtsaas.backend.application.exception.PaymentGatewayUnavailableException;
 import com.mtsaas.backend.domain.User;
@@ -104,6 +105,10 @@ public class LemonSqueezyService {
         HttpEntity<Map<String, Object>> request = new HttpEntity<>(payload, headers);
 
         try {
+            ObjectMapper mapper = new ObjectMapper();
+            String jsonPayload = mapper.writerWithDefaultPrettyPrinter().writeValueAsString(payload);
+            log.info("📤 Sending to Lemon Squeezy: {}", jsonPayload);
+            
             ResponseEntity<Map> response = restTemplate.exchange(API_URL, HttpMethod.POST, request, Map.class);
             Map<String, Object> responseBody = response.getBody();
             
