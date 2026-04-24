@@ -64,7 +64,8 @@ public class LemonSqueezyService {
         headers.set("Accept", "application/vnd.api+json");
         headers.set("Content-Type", "application/vnd.api+json");
 
-        // Constructing the complex JSON-API payload
+        // Build the JSON:API payload per Lemon Squeezy spec
+        // checkout_data: pre-fill customer info + custom metadata
         Map<String, Object> customData = new HashMap<>();
         customData.put("user_id", user.getId().toString());
         customData.put("credits", String.valueOf(credits));
@@ -73,15 +74,22 @@ public class LemonSqueezyService {
         checkoutData.put("email", user.getEmail());
         checkoutData.put("custom", customData);
 
-        List<Map<String, Object>> checkoutOptions = new ArrayList<>();
-        Map<String, Object> option = new HashMap<>();
-        option.put("redirect_url", frontendUrl + "/dashboard/credits/success?session_id={checkout_session_id}");
-        checkoutOptions.add(option);
+        // product_options: redirect_url belongs here (NOT in checkout_options)
+        String redirectUrl = frontendUrl + "/dashboard/credits/success?session_id={checkout_session_id}";
+        Map<String, Object> productOptions = new HashMap<>();
+        productOptions.put("redirect_url", redirectUrl);
 
+        // checkout_options: display settings object (NOT an array)
+        Map<String, Object> checkoutOptions = new HashMap<>();
+        checkoutOptions.put("embed", false);
+
+        // Assemble attributes
         Map<String, Object> attributes = new HashMap<>();
         attributes.put("checkout_data", checkoutData);
+        attributes.put("product_options", productOptions);
         attributes.put("checkout_options", checkoutOptions);
 
+        // Relationships
         Map<String, Object> storeData = new HashMap<>();
         storeData.put("type", "stores");
         storeData.put("id", storeId);
@@ -94,6 +102,7 @@ public class LemonSqueezyService {
         relationships.put("store", Map.of("data", storeData));
         relationships.put("variant", Map.of("data", variantData));
 
+        // Top-level data envelope
         Map<String, Object> data = new HashMap<>();
         data.put("type", "checkouts");
         data.put("attributes", attributes);
@@ -104,28 +113,15 @@ public class LemonSqueezyService {
 
         try {
             ObjectMapper mapper = new ObjectMapper();
+            String jsonPayload = mapper.writeValueAsString(payload);
             
-            // Build JSON manually to ensure checkout_options is properly formatted as array
-            String jsonPayload = "{"
-                + "\"data\":{"
-                + "\"type\":\"checkouts\","
-                + "\"attributes\":{"
-                + "\"checkout_data\":{\"email\":\"" + user.getEmail() + "\",\"custom\":{\"user_id\":\"" + user.getId() + "\",\"credits\":\"" + credits + "\"}},"
-                + "\"checkout_options\":[{\"redirect_url\":\"" + frontendUrl.replaceAll("\"", "\\\\\"") + "/dashboard/credits/success?session_id={checkout_session_id}\"}]"
-                + "},"
-                + "\"relationships\":{"
-                + "\"store\":{\"data\":{\"type\":\"stores\",\"id\":\"" + storeId + "\"}},"
-                + "\"variant\":{\"data\":{\"type\":\"variants\",\"id\":\"" + variantId + "\"}}"
-                + "}"
-                + "}"
-                + "}";
-            
-            log.error("📤 DEBUG: Raw JSON payload:\n{}", jsonPayload);
+            log.info("📤 Lemon Squeezy checkout request for user: {}, variant: {}", user.getEmail(), variantId);
+            log.debug("📤 Lemon Squeezy payload: {}", jsonPayload);
             
             HttpEntity<String> request = new HttpEntity<>(jsonPayload, headers);
             ResponseEntity<String> response = restTemplate.exchange(API_URL, HttpMethod.POST, request, String.class);
             
-            log.error("✅ DEBUG: Lemon Squeezy response SUCCESS: {}", response.getBody());
+            log.info("✅ Lemon Squeezy checkout created successfully for user: {}", user.getEmail());
             
             Map<String, Object> responseBody = mapper.readValue(response.getBody(), Map.class);
             if (responseBody != null && responseBody.containsKey("data")) {
