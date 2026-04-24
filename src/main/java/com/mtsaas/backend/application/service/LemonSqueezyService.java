@@ -105,12 +105,12 @@ public class LemonSqueezyService {
         try {
             ObjectMapper mapper = new ObjectMapper();
             String jsonPayload = mapper.writeValueAsString(payload);
-            log.info("📤 DEBUG: Sending to Lemon Squeezy API:\n{}", mapper.writerWithDefaultPrettyPrinter().writeValueAsString(payload));
+            log.error("📤 DEBUG: Sending to Lemon Squeezy API:\n{}", mapper.writerWithDefaultPrettyPrinter().writeValueAsString(payload));
             
             HttpEntity<String> request = new HttpEntity<>(jsonPayload, headers);
             ResponseEntity<String> response = restTemplate.exchange(API_URL, HttpMethod.POST, request, String.class);
             
-            log.info("✅ DEBUG: Lemon Squeezy response: {}", response.getBody());
+            log.error("✅ DEBUG: Lemon Squeezy response SUCCESS: {}", response.getBody());
             
             Map<String, Object> responseBody = mapper.readValue(response.getBody(), Map.class);
             if (responseBody != null && responseBody.containsKey("data")) {
