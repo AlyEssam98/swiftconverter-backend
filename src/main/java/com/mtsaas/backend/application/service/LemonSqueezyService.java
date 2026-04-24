@@ -159,4 +159,39 @@ public class LemonSqueezyService {
         }
         return missing;
     }
+
+    public void testApiConnection() {
+        if (apiKey == null || apiKey.contains("placeholder") ||
+                storeId == null || storeId.contains("placeholder")) {
+            throw new PaymentConfigurationException("Lemon Squeezy is not properly configured");
+        }
+
+        HttpHeaders headers = new HttpHeaders();
+        headers.set("Authorization", "Bearer " + apiKey);
+        headers.set("Accept", "application/vnd.api+json");
+        
+        HttpEntity<String> request = new HttpEntity<>(headers);
+        
+        try {
+            // Test with a simple GET request to check API connectivity
+            ResponseEntity<String> response = restTemplate.exchange(
+                "https://api.lemonsqueezy.com/v1/stores", 
+                HttpMethod.GET, 
+                request, 
+                String.class
+            );
+            
+            if (response.getStatusCode().is2xxSuccessful()) {
+                log.info("✓ Lemon Squeezy API connection successful");
+            } else {
+                throw new RuntimeException("API returned status: " + response.getStatusCode());
+            }
+        } catch (RestClientResponseException e) {
+            log.error("Lemon Squeezy API test failed with status {}: {}", e.getStatusCode(), e.getResponseBodyAsString());
+            throw new RuntimeException("API test failed: " + e.getStatusCode() + " - " + e.getResponseBodyAsString());
+        } catch (Exception e) {
+            log.error("Lemon Squeezy API test failed", e);
+            throw new RuntimeException("API test failed: " + e.getMessage());
+        }
+    }
 }

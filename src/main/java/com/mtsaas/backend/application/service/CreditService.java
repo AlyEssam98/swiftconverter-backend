@@ -415,4 +415,39 @@ public class CreditService {
                 if (credits <= 200) return new BigDecimal("29.99");
                 return new BigDecimal("69.99");
         }
+
+        public boolean isLemonSqueezyConfigured() {
+                return !(variantStarter == null || variantStarter.isBlank() || variantStarter.contains("placeholder") ||
+                        variantProfessional == null || variantProfessional.isBlank() || variantProfessional.contains("placeholder") ||
+                        variantEnterprise == null || variantEnterprise.isBlank() || variantEnterprise.contains("placeholder"));
+        }
+
+        public List<String> getMissingLemonSqueezyConfigs() {
+                List<String> missing = new ArrayList<>();
+                if (variantStarter == null || variantStarter.isBlank() || variantStarter.contains("placeholder")) {
+                        missing.add("LEMON_SQUEEZY_VARIANT_STARTER");
+                }
+                if (variantProfessional == null || variantProfessional.isBlank() || variantProfessional.contains("placeholder")) {
+                        missing.add("LEMON_SQUEEZY_VARIANT_PRO");
+                }
+                if (variantEnterprise == null || variantEnterprise.isBlank() || variantEnterprise.contains("placeholder")) {
+                        missing.add("LEMON_SQUEEZY_VARIANT_ENTERPRISE");
+                }
+                return missing;
+        }
+
+        public void testLemonSqueezyConnection() {
+                // This will throw PaymentConfigurationException if not configured
+                determineVariantId("starter");
+                log.info("✓ Variant configuration test passed");
+                
+                // Test the actual Lemon Squeezy service
+                try {
+                        lemonSqueezyService.testApiConnection();
+                        log.info("✓ Lemon Squeezy API connection test passed");
+                } catch (Exception e) {
+                        log.error("❌ Lemon Squeezy API connection test failed", e);
+                        throw new RuntimeException("Lemon Squeezy API connection failed: " + e.getMessage(), e);
+                }
+        }
 }
