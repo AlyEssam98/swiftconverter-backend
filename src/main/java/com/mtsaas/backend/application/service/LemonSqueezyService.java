@@ -104,8 +104,23 @@ public class LemonSqueezyService {
 
         try {
             ObjectMapper mapper = new ObjectMapper();
-            String jsonPayload = mapper.writeValueAsString(payload);
-            log.error("📤 DEBUG: Sending to Lemon Squeezy API:\n{}", mapper.writerWithDefaultPrettyPrinter().writeValueAsString(payload));
+            
+            // Build JSON manually to ensure checkout_options is properly formatted as array
+            String jsonPayload = "{"
+                + "\"data\":{"
+                + "\"type\":\"checkouts\","
+                + "\"attributes\":{"
+                + "\"checkout_data\":{\"email\":\"" + user.getEmail() + "\",\"custom\":{\"user_id\":\"" + user.getId() + "\",\"credits\":\"" + credits + "\"}},"
+                + "\"checkout_options\":[{\"redirect_url\":\"" + frontendUrl.replaceAll("\"", "\\\\\"") + "/dashboard/credits/success?session_id={checkout_session_id}\"}]"
+                + "},"
+                + "\"relationships\":{"
+                + "\"store\":{\"data\":{\"type\":\"stores\",\"id\":\"" + storeId + "\"}},"
+                + "\"variant\":{\"data\":{\"type\":\"variants\",\"id\":\"" + variantId + "\"}}"
+                + "}"
+                + "}"
+                + "}";
+            
+            log.error("📤 DEBUG: Raw JSON payload:\n{}", jsonPayload);
             
             HttpEntity<String> request = new HttpEntity<>(jsonPayload, headers);
             ResponseEntity<String> response = restTemplate.exchange(API_URL, HttpMethod.POST, request, String.class);
