@@ -81,4 +81,16 @@ public class CreditsController {
         CreditUsageResponse response = creditService.getCreditUsage(userDetails.getUsername());
         return ResponseEntity.ok(response);
     }
+
+    @GetMapping("/verify-purchase")
+    public ResponseEntity<Map<String, Object>> verifyPurchase(
+            @AuthenticationPrincipal UserDetails userDetails,
+            @RequestParam("session_id") String sessionId) {
+        log.info("Verifying purchase for user: {}, session: {}", userDetails.getUsername(), sessionId);
+        CreditService.VerifyPurchaseResult result = creditService.verifyAndFulfillPurchase(
+                userDetails.getUsername(), sessionId);
+        return ResponseEntity.ok(Map.of(
+                "fulfilled", result.isFulfilled(),
+                "availableCredits", result.getAvailableCredits()));
+    }
 }
