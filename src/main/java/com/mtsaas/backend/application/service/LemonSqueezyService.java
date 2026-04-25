@@ -47,7 +47,7 @@ public class LemonSqueezyService {
         }
     }
 
-    public CheckoutResult createCheckoutSession(User user, String variantId, long credits) {
+    public String createCheckoutSession(User user, String variantId, long credits) {
         if (apiKey == null || apiKey.contains("placeholder") ||
                 storeId == null || storeId.contains("placeholder")) {
             log.error("Attempted checkout with invalid Lemon Squeezy configuration");
@@ -127,9 +127,7 @@ public class LemonSqueezyService {
             if (responseBody != null && responseBody.containsKey("data")) {
                 Map<String, Object> responseData = (Map<String, Object>) responseBody.get("data");
                 Map<String, Object> responseAttributes = (Map<String, Object>) responseData.get("attributes");
-                String url = (String) responseAttributes.get("url");
-                String checkoutId = (String) responseData.get("id");
-                return new CheckoutResult(url, checkoutId);
+                return (String) responseAttributes.get("url");
             }
             throw new RuntimeException("Invalid response format from Lemon Squeezy");
         } catch (RestClientResponseException e) {
@@ -141,115 +139,6 @@ public class LemonSqueezyService {
         } catch (Exception e) {
             log.error("❌ Failed to create Lemon Squeezy checkout session", e);
             throw new PaymentGatewayUnavailableException("Payment provider is currently unavailable", e);
-        }
-    }
-
-    public void testApiConnection() {
-        if (apiKey == null || apiKey.contains("placeholder") ||
-                storeId == null || storeId.contains("placeholder")) {
-            throw new PaymentConfigurationException("Lemon Squeezy is not properly configured");
-        }
-
-        HttpHeaders headers = new HttpHeaders();
-        headers.set("Authorization", "Bearer " + apiKey);
-        headers.set("Accept", "application/vnd.api+json");
-
-        HttpEntity<String> request = new HttpEntity<>(headers);
-
-        try {
-            ResponseEntity<String> response = restTemplate.exchange(
-                "https://api.lemonsqueezy.com/v1/stores",
-                HttpMethod.GET,
-                request,
-                String.class
-            );
-
-            if (response.getStatusCode().is2xxSuccessful()) {
-                log.info("✓ Lemon Squeezy API connection successful");
-            } else {
-                throw new RuntimeException("API returned status: " + response.getStatusCode());
-            }
-        } catch (RestClientResponseException e) {
-            log.error("Lemon Squeezy API test failed with status {}: {}", e.getStatusCode(), e.getResponseBodyAsString());
-            throw new RuntimeException("API test failed: " + e.getStatusCode() + " - " + e.getResponseBodyAsString());
-        } catch (Exception e) {
-            log.error("Lemon Squeezy API test failed", e);
-            throw new RuntimeException("API test failed: " + e.getMessage());
-        }
-    }
-
-    /**
-     * Fetch checkout status from Lemon Squeezy API.
-     * Returns a map with: status (string), orderId (string or null), orderStatus (string or null)
-     */
-    @SuppressWarnings("unchecked")
-    public Map<String, Object> getCheckoutStatus(String checkoutId) {
-        if (apiKey == null || apiKey.contains("placeholder")) {
-            throw new PaymentConfigurationException("Lemon Squeezy API key is not configured");
-        }
-
-        HttpHeaders headers = new HttpHeaders();
-        headers.set("Authorization", "Bearer " + apiKey);
-        headers.set("Accept", "application/vnd.api+json");
-        headers.set("Content-Type", "application/vnd.api+json");
-
-        HttpEntity<String> request = new HttpEntity<>(headers);
-        String url = "https://api.lemonsqueezy.com/v1/checkouts/" + checkoutId;
-
-        try {
-            ResponseEntity<String> response = restTemplate.exchange(
-                url, HttpMethod.GET, request, String.class);
-
-            ObjectMapper mapper = new ObjectMapper();
-            Map<String, Object> body = mapper.readValue(response.getBody(), Map.class);
-            Map<String, Object> data = (Map<String, Object>) body.get("data");
-            Map<String, Object> attributes = (Map<String, Object>) data.get("attributes");
-
-            String status = (String) attributes.get("status");
-
-            // Check relationships for order
-            Map<String, Object> relationships = (Map<String, Object>) data.get("relationships");
-            String orderId = null;
-            String orderStatus = null;
-
-            if (relationships != null && relationships.containsKey("order")) {
-                Map<String, Object> orderRel = (Map<String, Object>) relationships.get("order");
-                Map<String, Object> orderData = (Map<String, Object>) orderRel.get("data");
-                if (orderData != null) {
-                    orderId = (String) orderData.get("id");
-                }
-            }
-
-            // If an order exists, fetch its status too
-            if (orderId != null) {
-                try {
-                    String orderUrl = "https://api.lemonsqueezy.com/v1/orders/" + orderId;
-                    ResponseEntity<String> orderResponse = restTemplate.exchange(
-                        orderUrl, HttpMethod.GET, request, String.class);
-                    Map<String, Object> orderBody = mapper.readValue(orderResponse.getBody(), Map.class);
-                    Map<String, Object> orderData = (Map<String, Object>) orderBody.get("data");
-                    Map<String, Object> orderAttrs = (Map<String, Object>) orderData.get("attributes");
-                    orderStatus = (String) orderAttrs.get("status");
-                } catch (Exception e) {
-                    log.warn("Could not fetch order status for orderId={}: {}", orderId, e.getMessage());
-                }
-            }
-
-            Map<String, Object> result = new HashMap<>();
-            result.put("status", status);
-            result.put("orderId", orderId);
-            result.put("orderStatus", orderStatus);
-            return result;
-
-        } catch (RestClientResponseException e) {
-            log.error("Failed to fetch checkout status for {}: status={}, body={}",
-                checkoutId, e.getStatusCode(), e.getResponseBodyAsString());
-            throw new PaymentGatewayUnavailableException(
-                "Failed to verify checkout with payment provider", e);
-        } catch (Exception e) {
-            log.error("Unexpected error fetching checkout status for {}", checkoutId, e);
-            throw new PaymentGatewayUnavailableException(
-                "Payment provider verification failed", e);
         }
     }
 
@@ -266,6 +155,4 @@ public class LemonSqueezyService {
         }
         return missing;
     }
-
-    public record CheckoutResult(String url, String checkoutId) {}
 }

@@ -19,5 +19,4 @@ public class PurchaseCreditsResponse {
     private String transactionId;
     private BigDecimal amountPaid;
     private String checkoutUrl;
-    private String checkoutId;
 }

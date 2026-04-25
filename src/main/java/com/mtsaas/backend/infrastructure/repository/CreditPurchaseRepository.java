@@ -51,9 +51,4 @@ public interface CreditPurchaseRepository extends JpaRepository<CreditPurchase, 
     @Transactional
     @Query("UPDATE CreditPurchase cp SET cp.expired = true WHERE cp.user = :user AND cp.expiryDate <= :now AND cp.expired = false")
     void markExpiredPurchases(@Param("user") User user, @Param("now") LocalDateTime now);
-
-    /**
-     * Check if a purchase has already been fulfilled by transaction ID
-     */
-    boolean existsByTransactionId(String transactionId);
 }
