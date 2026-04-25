@@ -15,14 +15,6 @@ import javax.crypto.Mac;
 import javax.crypto.spec.SecretKeySpec;
 import java.nio.charset.StandardCharsets;
 import java.util.UUID;
-import lombok.RequiredArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
-import org.springframework.beans.factory.annotation.Value;
-import org.springframework.http.HttpStatus;
-import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.*;
-
-import java.util.UUID;
 
 @RestController
 @RequestMapping("/api/v1/payments/webhook")
@@ -56,21 +48,22 @@ public class PaymentWebhookController {
             JsonNode rootNode = objectMapper.readTree(payload);
             JsonNode metaNode = rootNode.path("meta");
             String eventName = metaNode.path("event_name").asText();
-            
+
             log.info("Received Lemon Squeezy event: {}", eventName);
 
             if ("order_created".equals(eventName)) {
                 JsonNode dataNode = rootNode.path("data");
                 String orderId = dataNode.path("id").asText();
                 String status = dataNode.path("attributes").path("status").asText();
-                
+
                 if ("paid".equals(status)) {
                     JsonNode customData = metaNode.path("custom_data");
                     String userIdStr = customData.path("user_id").asText();
                     String creditsStr = customData.path("credits").asText();
 
                     if (!userIdStr.isEmpty() && !creditsStr.isEmpty()) {
-                        log.info("Parsed Lemon Squeezy order: id={}, userId={}, credits={}", orderId, userIdStr, creditsStr);
+                        log.info("Parsed Lemon Squeezy order: id={}, userId={}, credits={}", orderId, userIdStr,
+                                creditsStr);
                         handleOrderCreated(orderId, userIdStr, creditsStr);
                     } else {
                         log.warn("Missing custom_data in order: {}", orderId);
@@ -94,12 +87,12 @@ public class PaymentWebhookController {
             SecretKeySpec secretKeySpec = new SecretKeySpec(secret.getBytes(StandardCharsets.UTF_8), "HmacSHA256");
             mac.init(secretKeySpec);
             byte[] hashBytes = mac.doFinal(payload.getBytes(StandardCharsets.UTF_8));
-            
+
             StringBuilder hashString = new StringBuilder();
             for (byte b : hashBytes) {
                 hashString.append(String.format("%02x", b));
             }
-            
+
             return hashString.toString().equals(signature);
         } catch (Exception e) {
             log.error("Error verifying signature: {}", e.getMessage());

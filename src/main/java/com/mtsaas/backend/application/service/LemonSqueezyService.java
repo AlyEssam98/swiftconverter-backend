@@ -114,15 +114,15 @@ public class LemonSqueezyService {
         try {
             ObjectMapper mapper = new ObjectMapper();
             String jsonPayload = mapper.writeValueAsString(payload);
-            
+
             log.info("📤 Lemon Squeezy checkout request for user: {}, variant: {}", user.getEmail(), variantId);
             log.debug("📤 Lemon Squeezy payload: {}", jsonPayload);
-            
+
             HttpEntity<String> request = new HttpEntity<>(jsonPayload, headers);
             ResponseEntity<String> response = restTemplate.exchange(API_URL, HttpMethod.POST, request, String.class);
-            
+
             log.info("✅ Lemon Squeezy checkout created successfully for user: {}", user.getEmail());
-            
+
             Map<String, Object> responseBody = mapper.readValue(response.getBody(), Map.class);
             if (responseBody != null && responseBody.containsKey("data")) {
                 Map<String, Object> responseData = (Map<String, Object>) responseBody.get("data");
@@ -154,5 +154,129 @@ public class LemonSqueezyService {
             missing.add("FRONTEND_URL");
         }
         return missing;
-    }
-}
+    }}
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+    
+
+        
+
+        
+
+        
+
+                
+
+                
+
+                
+
+                
+                
+
+                
+                
+
+                
+
+                
+
+                
+
+                
+
+                
+
+                
+
+                
+
+        
+
+        
+
+        
+
+        
+
+        
+
+        
+
+            
+
+            
+
+            
+
+        
+
+        
+
+    
+    
+    
+
+        
+
+                
+
+        
+
+    
+    
+    
+
+        
+
+    
+    
+    
+
+        
+
+        
+
+    
+
+    
+
+    
+
+

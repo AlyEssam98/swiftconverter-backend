@@ -2,7 +2,6 @@ package com.mtsaas.backend.api;
 
 import com.mtsaas.backend.application.dto.AuthDto;
 import com.mtsaas.backend.application.service.AuthService;
-import com.mtsaas.backend.infrastructure.email.EmailService;
 import com.mtsaas.backend.infrastructure.security.JwtService;
 import com.mtsaas.backend.infrastructure.security.TokenBlacklistService;
 import jakarta.servlet.http.Cookie;
@@ -22,7 +21,6 @@ public class AuthController {
     private final AuthService authService;
     private final JwtService jwtService;
     private final TokenBlacklistService tokenBlacklistService;
-    private final EmailService emailService;
 
     @Value("${app.jwt.refresh-token-expiration-ms:1209600000}")
     private long refreshTokenExpirationMs;
