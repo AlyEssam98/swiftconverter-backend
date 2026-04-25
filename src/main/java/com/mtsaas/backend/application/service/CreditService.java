@@ -95,8 +95,8 @@ public class CreditService {
                 // Total available credits = purchase credits + direct user credits
                 Long availableCredits = purchaseCredits + userDirectCredits;
                 
-                log.info("✓ Purchase credits: {}, User direct credits: {}, Total available: {}", 
-                        purchaseCredits, userDirectCredits, availableCredits);
+                log.info("📊 [BALANCE DEBUG] User: {}, Purchase credits: {}, User direct credits: {}, Total available: {}", 
+                        email, purchaseCredits, userDirectCredits, availableCredits);
 
                 Long totalUsed = creditUsageRepository.getTotalCreditsUsedByUser(user);
                 
@@ -234,8 +234,8 @@ public class CreditService {
                                 .build();
                 
                 CreditPurchase savedPurchase = creditPurchaseRepository.save(creditPurchase);
-                log.info("✓ Credit purchase saved to database - ID: {}, Amount: {}, Expires: {}", 
-                        savedPurchase.getId(), amount, expiryDate);
+                log.info("✅ [PURCHASE DEBUG] Credit purchase saved - ID: {}, User: {}, Amount: {}, Expires: {}", 
+                        savedPurchase.getId(), user.getEmail(), amount, expiryDate);
 
                 // Record in usage ledger
                 CreditUsage usage = CreditUsage.builder()
