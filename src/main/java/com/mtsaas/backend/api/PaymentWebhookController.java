@@ -31,33 +31,48 @@ public class PaymentWebhookController {
 
     @PostMapping
     public ResponseEntity<String> handleWebhook(
-            @RequestBody String payload,
+            @RequestBody byte[] rawPayload,
             @RequestHeader("X-Signature") String signatureHeader) {
 
+        log.info("🔔 [WEBHOOK DEBUG] Received webhook request.");
+        log.info("🔔 [WEBHOOK DEBUG] Signature header: {}", signatureHeader);
+        
         if (webhookSecret == null || webhookSecret.contains("placeholder")) {
             log.error("Lemon Squeezy webhook secret is not configured.");
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Webhook secret not configured");
         }
 
-        if (!verifySignature(payload, signatureHeader, webhookSecret)) {
-            log.error("Invalid Lemon Squeezy signature.");
+        log.info("🔔 [WEBHOOK DEBUG] Secret is configured. Verifying signature...");
+
+        if (!verifySignature(rawPayload, signatureHeader, webhookSecret)) {
+            log.error("❌ [WEBHOOK DEBUG] Invalid Lemon Squeezy signature.");
+            log.error("❌ [WEBHOOK DEBUG] Raw payload size: {} bytes", rawPayload.length);
             return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("Invalid signature");
         }
 
+        log.info("✅ [WEBHOOK DEBUG] Signature verified successfully.");
+
         try {
-            JsonNode rootNode = objectMapper.readTree(payload);
+            String payloadString = new String(rawPayload, StandardCharsets.UTF_8);
+            log.info("🔔 [WEBHOOK DEBUG] Payload JSON snippet: {}", payloadString.length() > 200 ? payloadString.substring(0, 200) + "..." : payloadString);
+            
+            JsonNode rootNode = objectMapper.readTree(payloadString);
             JsonNode metaNode = rootNode.path("meta");
             String eventName = metaNode.path("event_name").asText();
 
-            log.info("Received Lemon Squeezy event: {}", eventName);
+            log.info("🔔 [WEBHOOK DEBUG] Event Name: {}", eventName);
 
             if ("order_created".equals(eventName)) {
                 JsonNode dataNode = rootNode.path("data");
                 String orderId = dataNode.path("id").asText();
                 String status = dataNode.path("attributes").path("status").asText();
 
+                log.info("🔔 [WEBHOOK DEBUG] Order ID: {}, Status: {}", orderId, status);
+
                 if ("paid".equals(status)) {
                     JsonNode customData = metaNode.path("custom_data");
+                    log.info("🔔 [WEBHOOK DEBUG] Custom Data object: {}", customData.toString());
+                    
                     String userIdStr = customData.path("user_id").asText();
                     String creditsStr = customData.path("credits").asText();
 
@@ -75,18 +90,19 @@ public class PaymentWebhookController {
                 log.debug("Ignoring unhandled Lemon Squeezy event type: {}", eventName);
             }
         } catch (Exception e) {
-            log.error("Failed to parse Lemon Squeezy webhook event: {}", e.getMessage(), e);
+            log.error("❌ [WEBHOOK DEBUG] Failed to parse webhook event: {}", e.getMessage(), e);
         }
 
+        log.info("🔔 [WEBHOOK DEBUG] Returning 200 OK");
         return ResponseEntity.ok("Received");
     }
 
-    private boolean verifySignature(String payload, String signature, String secret) {
+    private boolean verifySignature(byte[] payload, String signature, String secret) {
         try {
             Mac mac = Mac.getInstance("HmacSHA256");
             SecretKeySpec secretKeySpec = new SecretKeySpec(secret.getBytes(StandardCharsets.UTF_8), "HmacSHA256");
             mac.init(secretKeySpec);
-            byte[] hashBytes = mac.doFinal(payload.getBytes(StandardCharsets.UTF_8));
+            byte[] hashBytes = mac.doFinal(payload);
 
             StringBuilder hashString = new StringBuilder();
             for (byte b : hashBytes) {
@@ -101,20 +117,21 @@ public class PaymentWebhookController {
     }
 
     private void handleOrderCreated(String orderId, String userIdStr, String creditsStr) {
+        log.info("🔔 [WEBHOOK DEBUG] handleOrderCreated started. User ID: {}, Credits: {}", userIdStr, creditsStr);
         try {
             UUID userId = UUID.fromString(userIdStr);
             long credits = Long.parseLong(creditsStr);
 
             User user = userRepository.findById(userId).orElse(null);
             if (user != null) {
-                log.info("Fulfilling purchase: {} credits for user: {}", credits, user.getEmail());
+                log.info("🔔 [WEBHOOK DEBUG] Fulfilling purchase: {} credits for user: {}", credits, user.getEmail());
                 creditService.addPurchasedCredits(user, credits, orderId);
-                log.info("Successfully added {} credits to user {}", credits, user.getEmail());
+                log.info("✅ [WEBHOOK DEBUG] Successfully added {} credits to user {}", credits, user.getEmail());
             } else {
-                log.warn("User not found for purchase fulfillment: {}", userId);
+                log.warn("❌ [WEBHOOK DEBUG] User not found for purchase fulfillment: {}", userId);
             }
         } catch (Exception e) {
-            log.error("Failed to process purchase fulfillment for order {}: {}", orderId, e.getMessage(), e);
+            log.error("❌ [WEBHOOK DEBUG] Failed to process purchase fulfillment for order {}: {}", orderId, e.getMessage(), e);
         }
     }
 }
