@@ -146,7 +146,7 @@ public abstract class BaseMxGenerator implements MxGenerator {
             return false;
         if (tags.containsKey(baseKey))
             return true;
-        String[] suffixes = { "A", "D", "F", "K", "C" };
+        String[] suffixes = { "A", "B", "D", "F", "K", "C" };
         for (String s : suffixes)
             if (tags.containsKey(baseKey + s))
                 return true;
@@ -184,7 +184,7 @@ public abstract class BaseMxGenerator implements MxGenerator {
         if (raw == null || raw.isBlank())
             return false;
 
-        ParsedParty parsed = parsePartyContent(raw);
+        ParsedParty parsed = parsePartyContent(raw, true);
 
         xml.append("        <").append(role).append(">\n");
         xml.append("          <FinInstnId>\n");
@@ -283,7 +283,7 @@ public abstract class BaseMxGenerator implements MxGenerator {
             }
         }
 
-        ParsedParty parsed = parsePartyContent(content);
+        ParsedParty parsed = parsePartyContent(content, false);
         if (parsed == null)
             return;
 
@@ -333,7 +333,13 @@ public abstract class BaseMxGenerator implements MxGenerator {
         }
     }
 
-    protected ParsedParty parsePartyContent(String content) {
+    /**
+     * Parses party/agent content from an MT tag value.
+     * @param content  the raw tag value
+     * @param scanForBic  true for agent tags (52, 53, 56, 57) where BICs are expected;
+     *                    false for party tags (50K, 59) where names should not be mistaken for BICs
+     */
+    protected ParsedParty parsePartyContent(String content, boolean scanForBic) {
         if (content == null)
             return null;
         String[] rawLines = content.split("\\r?\\n");
@@ -354,26 +360,29 @@ public abstract class BaseMxGenerator implements MxGenerator {
         String extractedBic = null;
         List<String> addressLines = new ArrayList<>();
 
-        // BIC Regex: [A-Z]{4}[A-Z]{2}[A-Z0-9]{2}([A-Z0-9]{3})?
-        java.util.regex.Pattern bicPattern = java.util.regex.Pattern
-                .compile("[A-Z]{4}[A-Z]{2}[A-Z0-9]{2}([A-Z0-9]{3})?");
+        // Step 1: Scan all lines for a BIC — only for agent tags where BICs are expected.
+        // For party tags (50K, 59), names like "VARAGANI" or "BORISGAEL" can falsely match
+        // the BIC pattern and get removed, causing critical data loss.
+        if (scanForBic) {
+            // BIC Regex: [A-Z]{4}[A-Z]{2}[A-Z0-9]{2}([A-Z0-9]{3})?
+            java.util.regex.Pattern bicPattern = java.util.regex.Pattern
+                    .compile("[A-Z]{4}[A-Z]{2}[A-Z0-9]{2}([A-Z0-9]{3})?");
 
-        // Step 1: Scan all lines for a BIC (important for Agent detection)
-        for (int i = 0; i < lines.size(); i++) {
-            String ln = lines.get(i);
-            java.util.regex.Matcher matcher = bicPattern.matcher(ln);
-            if (matcher.find()) {
-                extractedBic = matcher.group();
-                // If the line consists only of the BIC (possibly with leading/trailing spaces),
-                // we should remove the line to avoid duplication.
-                if (ln.trim().equals(extractedBic)) {
-                    lines.remove(i);
-                    i--; // Adjust index after removal
-                } else {
-                    // Otherwise, just remove the BIC from the line
-                    lines.set(i, ln.replace(extractedBic, "").replaceAll("\\s+", " ").trim());
+            for (int i = 0; i < lines.size(); i++) {
+                String ln = lines.get(i);
+                java.util.regex.Matcher matcher = bicPattern.matcher(ln);
+                if (matcher.find()) {
+                    extractedBic = matcher.group();
+                    // If the line consists only of the BIC, remove the line to avoid duplication.
+                    if (ln.trim().equals(extractedBic)) {
+                        lines.remove(i);
+                        i--;
+                    } else {
+                        // Otherwise, just remove the BIC from the line
+                        lines.set(i, ln.replace(extractedBic, "").replaceAll("\\s+", " ").trim());
+                    }
+                    break; // Take the first found BIC
                 }
-                break; // Take the first found BIC
             }
         }
 
