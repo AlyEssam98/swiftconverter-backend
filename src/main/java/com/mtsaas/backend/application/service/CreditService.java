@@ -29,6 +29,7 @@ import java.time.temporal.TemporalAdjusters;
 import java.util.Arrays;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
@@ -188,14 +189,22 @@ public class CreditService {
 
                 try {
                         String variantId = determineVariantId(packageId);
-                        String checkoutUrl = lemonSqueezyService.createCheckoutSession(user, variantId, selectedPackage.getCredits());
+                        LemonSqueezyService.CheckoutResult result = lemonSqueezyService.createCheckoutSession(
+                                user, variantId, selectedPackage.getCredits());
 
-                        log.info("Created Lemon Squeezy checkout session for user: {}, package: {}, variant: {}", email, packageId, variantId);
+                        // Store pending checkout for proactive fulfillment on success page
+                        user.setPendingCheckoutId(result.checkoutId());
+                        user.setPendingCredits(selectedPackage.getCredits());
+                        userRepository.save(user);
+
+                        log.info("Created Lemon Squeezy checkout session for user: {}, package: {}, checkoutId: {}",
+                                email, packageId, result.checkoutId());
 
                         return PurchaseCreditsResponse.builder()
                                         .success(true)
                                         .message("Redirecting to checkout...")
-                                        .checkoutUrl(checkoutUrl)
+                                        .checkoutUrl(result.url())
+                                        .checkoutId(result.checkoutId())
                                         .build();
                 } catch (InvalidPurchaseRequestException | PaymentConfigurationException | PaymentGatewayUnavailableException e) {
                         throw e;
@@ -266,7 +275,7 @@ public class CreditService {
                                 packagePrice
                         );
                         log.info("✓ Sent admin purchase notification");
-                        
+
                         // Also send customer confirmation
                         emailService.sendCreditPurchaseConfirmation(
                                 user.getEmail(),
@@ -281,7 +290,6 @@ public class CreditService {
                         // Don't throw exception - email is not critical to credit fulfillment
                 }
         }
-
 
         public CreditUsageResponse getCreditUsage(String email) {
                 // Handle mock user for development
@@ -414,5 +422,100 @@ public class CreditService {
                 if (credits <= 50) return new BigDecimal("9.99");
                 if (credits <= 200) return new BigDecimal("29.99");
                 return new BigDecimal("69.99");
+        }
+
+        /**
+         * Proactively verify a checkout with Lemon Squeezy and fulfill credits if paid.
+         * This is the primary fulfillment path — webhooks are secondary/backup.
+         */
+        @Transactional
+        public CreditBalanceResponse verifyAndFulfillPurchase(String email, String checkoutId) {
+                User user = userRepository.findByEmail(email)
+                                .orElseThrow(() -> new RuntimeException("User not found: " + email));
+
+                log.info("Verifying checkout {} for user {}", checkoutId, email);
+
+                // 1. Query Lemon Squeezy for checkout + order status
+                Map<String, Object> status = lemonSqueezyService.getCheckoutStatus(checkoutId);
+                String checkoutStatus = (String) status.get("status");
+                String orderStatus = (String) status.get("orderStatus");
+                String orderId = (String) status.get("orderId");
+
+                log.info("Checkout {} status={}, orderStatus={}, orderId={}",
+                        checkoutId, checkoutStatus, orderStatus, orderId);
+
+                // 2. Determine transaction id for idempotency
+                String transactionId = (orderId != null && !orderId.isBlank()) ? orderId : checkoutId;
+
+                // 3. Idempotency check — already fulfilled?
+                boolean alreadyFulfilled = creditPurchaseRepository.existsByTransactionId(transactionId);
+                if (alreadyFulfilled) {
+                        log.info("Purchase {} already fulfilled for user {}, returning current balance", transactionId, email);
+                        user.setPendingCheckoutId(null);
+                        user.setPendingCredits(null);
+                        userRepository.save(user);
+                        return getUserCreditBalance(email);
+                }
+
+                // 4. Check if paid
+                boolean isPaid = "paid".equalsIgnoreCase(orderStatus) || "paid".equalsIgnoreCase(checkoutStatus);
+                if (!isPaid) {
+                        log.warn("Checkout {} is not paid yet (checkoutStatus={}, orderStatus={})",
+                                checkoutId, checkoutStatus, orderStatus);
+                        return getUserCreditBalance(email);
+                }
+
+                // 5. Determine credits to add — use pending checkout info stored on user
+                Long credits = user.getPendingCredits();
+                if (credits == null || credits <= 0) {
+                        log.error("No pending credits found for user {} checkout {}. Unable to fulfill proactively.",
+                                email, checkoutId);
+                        throw new RuntimeException("Unable to determine credits for checkout. Please wait for webhook processing or contact support.");
+                }
+
+                log.info("Fulfilling {} credits for checkout {} / order {} via proactive verification",
+                        credits, checkoutId, transactionId);
+
+                // 6. Fulfill credits
+                addPurchasedCredits(user, credits, transactionId);
+
+                // 7. Clear pending checkout
+                user.setPendingCheckoutId(null);
+                user.setPendingCredits(null);
+                userRepository.save(user);
+
+                return getUserCreditBalance(email);
+        }
+
+        public boolean isLemonSqueezyConfigured() {
+                return !(variantStarter == null || variantStarter.isBlank() || variantStarter.contains("placeholder") ||
+                        variantProfessional == null || variantProfessional.isBlank() || variantProfessional.contains("placeholder") ||
+                        variantEnterprise == null || variantEnterprise.isBlank() || variantEnterprise.contains("placeholder"));
+        }
+
+        public List<String> getMissingLemonSqueezyConfigs() {
+                List<String> missing = new ArrayList<>();
+                if (variantStarter == null || variantStarter.isBlank() || variantStarter.contains("placeholder")) {
+                        missing.add("LEMON_SQUEEZY_VARIANT_STARTER");
+                }
+                if (variantProfessional == null || variantProfessional.isBlank() || variantProfessional.contains("placeholder")) {
+                        missing.add("LEMON_SQUEEZY_VARIANT_PRO");
+                }
+                if (variantEnterprise == null || variantEnterprise.isBlank() || variantEnterprise.contains("placeholder")) {
+                        missing.add("LEMON_SQUEEZY_VARIANT_ENTERPRISE");
+                }
+                return missing;
+        }
+
+        public void testLemonSqueezyConnection() {
+                determineVariantId("starter");
+                log.info("✓ Variant configuration test passed");
+                try {
+                        lemonSqueezyService.testApiConnection();
+                        log.info("✓ Lemon Squeezy API connection test passed");
+                } catch (Exception e) {
+                        log.error("❌ Lemon Squeezy API connection test failed", e);
+                        throw new RuntimeException("Lemon Squeezy API connection failed: " + e.getMessage(), e);
+                }
         }
 }

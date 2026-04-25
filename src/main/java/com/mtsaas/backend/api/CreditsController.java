@@ -81,4 +81,28 @@ public class CreditsController {
         CreditUsageResponse response = creditService.getCreditUsage(userDetails.getUsername());
         return ResponseEntity.ok(response);
     }
+
+    @PostMapping("/purchase/verify")
+    public ResponseEntity<?> verifyPurchase(
+            @AuthenticationPrincipal UserDetails userDetails,
+            @RequestBody Map<String, String> request) {
+        String checkoutId = request.get("checkoutId");
+        if (checkoutId == null || checkoutId.isBlank()) {
+            return ResponseEntity.badRequest()
+                    .body(Map.of("error", "checkoutId is required"));
+        }
+        try {
+            log.info("Verifying purchase for user: {}, checkoutId: {}", userDetails.getUsername(), checkoutId);
+            CreditBalanceResponse balance = creditService.verifyAndFulfillPurchase(
+                    userDetails.getUsername(), checkoutId);
+            return ResponseEntity.ok(balance);
+        } catch (RuntimeException e) {
+            log.error("Purchase verification failed for user: {}, checkoutId: {}",
+                    userDetails.getUsername(), checkoutId, e);
+            return ResponseEntity.status(HttpStatus.BAD_GATEWAY)
+                    .body(Map.of(
+                            "error", "Verification failed",
+                            "message", e.getMessage()));
+        }
+    }
 }

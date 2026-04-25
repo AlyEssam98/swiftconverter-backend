@@ -50,6 +50,11 @@ public class User {
 
     private String lemonSqueezyCustomerId;
 
+    // Pending checkout tracking for proactive fulfillment
+    private String pendingCheckoutId;
+
+    private Long pendingCredits;
+
     private String displayName;
     
     private String firstName;
