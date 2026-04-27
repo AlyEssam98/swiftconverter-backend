@@ -81,7 +81,7 @@ public class LemonSqueezyService {
 
         // checkout_options: display settings object (NOT an array)
         Map<String, Object> checkoutOptions = new HashMap<>();
-        checkoutOptions.put("embed", false);
+        checkoutOptions.put("embed", true);
 
         // Assemble attributes
         Map<String, Object> attributes = new HashMap<>();
